@@ -95,7 +95,7 @@ def view_patients(patient_list):
         print ("No patient records yet :()")
         return
 
-    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}")
+    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}")
     print("-" *80)
     for patient in patient_list:
         typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}")
@@ -252,7 +252,8 @@ if __name__ == "__main__":
             HR = input("Heart Rate: ")
             BP = input("Blood Pressure: ")
             Temp = input("Temperature: ")
-            add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp)
+            CC = input("Chief Concerns: ")
+            add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC)
         elif choice == "2":
             view_patients(patient_list)
         elif choice == "3":
