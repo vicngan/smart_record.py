@@ -1,6 +1,6 @@
 import csv
 import os
-import datetime
+from datetime import datetime
 import time
 
 RED = "\033[91m"
@@ -35,15 +35,15 @@ def save_to_csv(patient, filename= "vital_log.csv"):
         writer =csv.writer(file) #writer helper
 
         if not file_exists:
-            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "Time"])
+            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp"])
 
         writer.writerow([
             patient["patient_id"], patient["name"], patient["DOB"],
-            patient["HR"], patient["BP"], patient["Temp"], patient["Time"]
+            patient["HR"], patient["BP"], patient["Temp"]
         ])
 
 #add patient 
-def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
+def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp):
     from datetime import datetime
     #DOB format
     try:
@@ -64,7 +64,6 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
         "HR": HR,
         "BP": BP,
         "Temp": Temp,
-        "Time": Time,
     }
 
     patient_list.append(patient)
@@ -81,7 +80,7 @@ def view_patients(patient_list):
     for patient in patient_list:
         print(patient)
 
-    typeprint(f"{'patient_id':<12}{'name':<12}{'DOB':<12}{'HR':<8}{'BP':<10}{'Temp':<10}{'Time':<8}")
+    typeprint(f"{'patient_id':<12}{'name':<12}{'DOB':<12}{'HR':<8}{'BP':<10}{'Temp':<10}")
     for p in patient_list:
         systolic, diastolic = map(int, p["BP"].split('/')) #turning strings into integer and split at /
         #check for abnormality
@@ -92,7 +91,7 @@ def view_patients(patient_list):
         else:
             bp_display = p['BP']
 
-        print(f"{p['patient_id']:<8}{p['name']:<12}{p['DOB']:<12}{p['HR']:<6}{p['BP']:<10}{bp_display:<10}{p['Temp']:<6}{p['Time']:<8}")
+        print(f"{p['patient_id']:<8}{p['name']:<12}{p['DOB']:<12}{p['HR']:<6}{p['BP']:<10}{bp_display:<10}{p['Temp']:<6}")
 
 #search pts by ID
 def search_patient(patient_list, patient_id):
@@ -141,7 +140,7 @@ def update_vitals(patient_list, patient_id):
 
             save_to_csv(patient)
             print("\nVitals updated successfully :D\n")
-            print(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<12}{patient['HR']:<6}{patient['BP']:<10}{patient['Temp']:<6}{patient['Time']:<8}")
+            print(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<12}{patient['HR']:<6}{patient['BP']:<10}{patient['Temp']:<6}")
             return
     print("\nNo patient found with that ID, try again!\n")
 
@@ -169,8 +168,7 @@ if __name__ == "__main__":
             HR = input("Heart Rate: ")
             BP = input("Blood Pressure: ")
             Temp = input("Temperature: ")
-            Time = input("Time: ")
-            add_patient(vitals_log, patient_id, name, DOB, HR, BP, Temp, Time)
+            add_patient(vitals_log, patient_id, name, DOB, HR, BP, Temp)
         elif choice == "2":
             view_patients(vitals_log)
         elif choice == "3":
