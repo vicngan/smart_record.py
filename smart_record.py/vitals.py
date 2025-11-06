@@ -39,15 +39,15 @@ def save_to_csv(patient, filename= "patient_list.csv"):
     with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
         writer =csv.writer(file) #writer helper
         if not file_exists:
-            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp"])
+            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC"])
         writer.writerow([
             patient["patient_id"], patient["name"], patient["DOB"],
-            patient["HR"], patient["BP"], patient["Temp"]
+            patient["HR"], patient["BP"], patient["Temp"], patient["CC"]
             ])
         
 
 #add patient 
-def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp):
+def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "" ):
     from datetime import datetime
     #DOB format
     try:
@@ -68,6 +68,7 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp):
         "HR": HR,
         "BP": BP,
         "Temp": Temp,
+        "CC" : chief_complaint
     }
 
     patient_list.append(patient)
@@ -79,19 +80,30 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp):
 def save_data(patient_list, filename= 'patient_list.json'):
     with open(filename, "w") as f: #open write "w" mode as f (file nickname)
         json.dump(patient_list, f, indent = 4) #write data into file in JSON format , file writing into, indent
-    print("Data Saved!!!")
+    typeprint("Data Saved!!!")
+
+def load_data(filename='patient_list.json'):
+    try:
+        with open(filename, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return[]
 
 #view all patients 
 def view_patients(patient_list):
     if not patient_list:
         print ("No patient records yet :()")
         return
-    for patient in patient_list:
-        print(patient)
 
-    typeprint(f"{'patient_id':<12}{'name':<12}{'DOB':<12}{'HR':<8}{'BP':<10}{'Temp':<10}")
+    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}")
+    print("-" *80)
+    for patient in patient_list:
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}")
+
+
     for p in patient_list:
         systolic, diastolic = map(int, p["BP"].split('/')) #turning strings into integer and split at /
+        
         #check for abnormality
         is_abnormal = (systolic >140 or systolic <90) or (diastolic >100 or diastolic <50)
 
@@ -100,17 +112,17 @@ def view_patients(patient_list):
         else:
             bp_display = p['BP'] #highlight significant data without affecting actual data
 
-        print(f"{p['patient_id']:<8}{p['name']:<12}{p['DOB']:<12}{p['HR']:<6}{p['BP']:<10}{bp_display:<10}{p['Temp']:<6}")
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{bp_display:<12}{p['Temp']:<8}")
 
 #search pts by ID
 def search_patient(patient_list, patient_id):
     for patient in patient_list:
         if patient["patient_id"] == patient_id:
-            print("\nPatient Record Found!!")
-            print(f"{'ID':<10}{'Name':<12}{'DOB':<12}")
-            print(f"{patient['patient_id']:<10}{patient['name']:<12}{patient['DOB']:<12}")
+            typeprint("\nPatient Record Found!!")
+            print(f"{'ID':<10}{'Name':<15}{'DOB':<15}")
+            typeprint(f"{patient['patient_id']:<10}{patient['name']:<15}{patient['DOB']:<15}")
             return
-    print("\nNo patient found with that ID, try again :D")
+    typeprint("\nNo patient found with that ID, try again :D")
 
 #count abnormal HR
 def get_abnormal_HR(patient_list, HR_low=40, HR_high = 110): #return a list of patients whose HR is abnormal
@@ -130,11 +142,11 @@ def display_abnormal_HR(patient_list, HR_low=40, HR_high=110):
     ]
 
     print("\nAbnormal Heart Rate Patients:")
-    print("{:<10}{:<15}{:<12}{:<6}".format("ID", "Name", "DOB", "HR"))
+    typeprint("{:<10}{:<15}{:<15}{:<6}".format("ID", "Name", "DOB", "HR"))
     print("-" * 45)
 
     for p in abnormal_list:
-        print("{:<10}{:<15}{:<12}{:<6}".format(
+        print("{:<10}{:<15}{:<15}{:<6}".format(
             p["patient_id"], p["name"], p["DOB"], p["HR"]
         ))
 
@@ -156,10 +168,10 @@ def count_abnormal_BP(patient_list, sys_low=90, sys_high=150, dias_low=50, dias_
 def display_abnormal_BP(patient_list, sys_low=90, sys_high=150, dias_low=50, dias_high=100): #return a table of abnormal BP patients
     abnormal_list = get_abnormal_HR(patient_list)
     print(f"\nAbnormal HR count: {len(abnormal_list)}")
-    print("{:<10}{:<15}{:<12}{:<6}".format("ID", "Name", "DOB", "HR"))
+    print("{:<10}{:<15}{:<15}{:<6}".format("ID", "Name", "DOB", "HR"))
     print("-" * 45)
     for p in abnormal_list:
-        print("{:<10}{:<15}{:<12}{:<6}".format(
+        typeprint("{:<10}{:<15}{:<15}{:<6}".format(
             p["patient_id"], p["name"], p["DOB"], p["HR"]
         ))
 
@@ -171,7 +183,7 @@ def abnormal_summary(patient_list, HR_low=40, HR_high=110, sys_low=90, sys_high=
     if not patient_list:
         print("No patient record found :( Try again!)")
         return
-    print(f"\n{'ID':<8}{'Name':<12}{'HR':<6}{'BP':<10}{'Status':<12}")
+    typeprint(f"\n{'ID':<8}{'Name':<15}{'HR':<8}{'BP':<10}{'Status':<12}")
 
     for p in patient_list:
         hr = int(p["HR"])
@@ -191,13 +203,13 @@ def abnormal_summary(patient_list, HR_low=40, HR_high=110, sys_low=90, sys_high=
             status.append ("BP abnormal!")
         status = ", ".join(status) if status else "Normal"
 
-        print(f"{p['patient_id']:<8}{p[name]:<12}{hr_display:<6}{hr_display:<10}{bp_display:<10}{status:<12}")
+        typeprint(f"{p['patient_id']:<8}{p[name]:<12}{DOB:<15}{hr_display:<10}{bp_display:<12}{status:<12}")
 
 #update patient vitals
 def update_vitals(patient_list, patient_id):
     for patient in patient_list:
         if patient["patient_id"] == patient_id:
-            print("\nPatient Found! Go ahead and enter the updated vital!\n")
+            typeprint("\nPatient Found! Go ahead and enter the updated vital!\n")
 
             new_HR = input("Updated Heart Rate: ")
             new_BP = input("Updated Blood Pressure: ")
@@ -211,14 +223,14 @@ def update_vitals(patient_list, patient_id):
             patient["Time"] = new_Time
 
             save_to_csv(patient)
-            print("\nVitals updated successfully :D\n")
-            print(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<12}{patient['HR']:<6}{patient['BP']:<10}{patient['Temp']:<6}")
+            typeprint("\nVitals updated successfully :D\n")
+            typeprint(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}{patient['BP']:<12}{patient['Temp']:<8}")
             return
-    print("\nNo patient found with that ID, try again!\n")
+    typeprint("\nNo patient found with that ID, try again!\n")
 
 #main program
 if __name__ == "__main__":
-    print ("Welcome to Smart Record App :D")
+    typeprint ("Welcome to Smart Record App :D")
     if __name__ == "__main__":
         patient_list = load_from_csv() #restores old record from csv
     
@@ -254,10 +266,10 @@ if __name__ == "__main__":
             update_id = input("Enter Patient ID to update: ")
             update_vitals(patient_list, update_id)
         elif choice == "7":
-            print("It's a good day to save lives! See you later!!")
+            typeprint("It's a good day to save lives! See you later!!")
             break
         else:
-            print("This choice does not exist! Try Again :D")
+            typeprint("This choice does not exist! Try Again :D")
 
 #---------------------------------------- WEBPAGE GUI -------------------------------------------
 
@@ -269,8 +281,10 @@ def gui_add_patient(patient_list):
     HR = simpledialog.askstring("Input", "Heart Rate: ")
     BP = simpledialog.askstring("Input", "Blood Pressure: ")
     Temp = simpledialog.askstring("Input", "Temperature: ")
+    CC = simpledialog("Input", "Chief Complaints: ")
+    
 
-    add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp)
+    add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC)
 
 def gui_view_patients(patient_list):
     if not patient_list:
@@ -279,7 +293,7 @@ def gui_view_patients(patient_list):
     all_data = "" #initialize data first
     all_data += "-"*50 +"\n" #take char "-" and repeat *(x) time and \n add new line
     for p in patient_list:
-        all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']}\n"
+        all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']} | {p['CC']} \n"
     messagebox.showinfo("All Patients", all_data)
 
 def gui_search_patients(patient_list):
