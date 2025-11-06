@@ -1,3 +1,6 @@
+import csv
+import os
+
 #list to store patients info
 vitals_log = []
 
@@ -27,6 +30,7 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
         "Time": Time,
     }
     patient_list.append(patient)
+    save_to_csv(patient_list)
 
     RED = "\033[91m"
     RESET = "\033[0m"
@@ -52,6 +56,16 @@ def view_patients(patient_list):
     for patient in patient_list:
         print(patient)
 
+#search pts by ID
+def search_patient(patient_list, patient_id):
+    for patient in patient_list:
+        if patient["patient_id"] == patient_id:
+            print("\nPatient Record Found!!")
+            print(f"{'ID':<10}{'Name':<12}{'DOB':<12}")
+            print(f"{patient['patient_id']:<10}{patient['name']:<12}{patient[DOB]:<12}")
+            return
+    print("\nNo patient found with that ID, try again :D")
+
 #count abnormal HR
 def count_abnormal_HR(patient_list, threshold=100):
     count=sum(1 for patient in patient_list if patient ['HR']>threshold)
@@ -76,7 +90,7 @@ print(f"Abnormal BP count:", count_abnormal_BP(vitals_log))
 if __name__ == "__main__":
     print ("Welcome to Smart Record App :D")
     while True:
-        print("\nOptions: 1 = add patient, 2 = view patients, 3 = abnormal BP count, 4 = abnormal HR count, 5 = exit")
+        print("\nOptions: 1 = add patient, 2 = view patients, 3 = abnormal BP count, 4 = abnormal HR count, 5 = search patient, 6 = exit")
         choice = input("please select your choice:")
         if choice == "1":
             patient_id = input("Patient ID: ")
@@ -95,8 +109,26 @@ if __name__ == "__main__":
         elif choice == "4":
             print(f"Abnormal HR count: {count_abnormal_HR(vitals_log)}")
         elif choice == "5":
+            search_id = input("Please enter patient ID to search: ")
+            search_patient(vitals_log, search_id)
+        elif choice == "6":
             print("It's a good day to save lives! See you later!!")
             break
         else:
             print("This choice does not exist! Try Again :D")
+
+#take data and save to .csv file 
+def save_to_csv(patient_list, filename= "vital_log.csv"):
+    #write header if file doesn't exist
+    file_exists = os.path.isfile(filename) #checks if file exists
+
+    with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
+        writer =csv.writer(file) #writer helper
+
+        if not file_exists:
+            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "Time"])
+
+        for p in patient_list: #loop through pts dictionary inside the list and add new row 
+            writer.writerow([p["patient_id"], p["name"], p["DOB"], p["HR"], p["BP"], p["Temp"], p["Time"]])
+
 
