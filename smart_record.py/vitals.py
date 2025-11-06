@@ -1,14 +1,51 @@
 import csv
 import os
+import datetime
+import time
+
+RED = "\033[91m"
+RESET = "\033[0m"
+
+def typeprint(text, speed=0.05): #print function
+        for char in text:
+            print(char, end='', flush=True) #print without newline
+            time.sleep(speed) #delay between chars
+        print()
+
+CSV_FILE = "vital_log.csv"
 
 #list to store patients info
-vitals_log = []
+def load_from_csv(filename="vital_log.csv"):
+    patient_list = []
+    if os.path.isfile(filename):
+        with open(filename, mode="r", newline="") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                patient_list.append(row)
+                row["HR"] = int(row["HR"])
+                row["Temp"] = float(row["Temp"])
+    return patient_list
+
+#take data and save to .csv file 
+def save_to_csv(patient, filename= "vital_log.csv"):
+    #write header if file doesn't exist
+    file_exists = os.path.isfile(filename) #checks if file exists
+
+    with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
+        writer =csv.writer(file) #writer helper
+
+        if not file_exists:
+            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "Time"])
+
+        writer.writerow([
+            patient["patient_id"], patient["name"], patient["DOB"],
+            patient["HR"], patient["BP"], patient["Temp"], patient["Time"]
+        ])
 
 #add patient 
 def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
     from datetime import datetime
-
-#DOB format
+    #DOB format
     try:
         DOB_obj = datetime.strptime(DOB, "%m/%d/%Y") #string -> datetime object
         DOB = DOB_obj.strftime("%m/%d/%Y") #datetime -> string
@@ -16,10 +53,10 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
         print("Invalid format!! Use MM/DD/YYYY")
         return
 
-# Timestamp
+    # Timestamp
     Time = datetime.now().strftime("%I:%M %p")
-
-#PatientDict.
+    
+    #PatientDict.
     patient = {
         "patient_id": patient_id,
         "name": name,
@@ -29,13 +66,22 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
         "Temp": Temp,
         "Time": Time,
     }
+
     patient_list.append(patient)
-    save_to_csv(patient_list)
+    save_to_csv(patient)
+    
+    typeprint("\nNew Patient Added Successfully! 🎀")
+    view_patients(patient_list)
 
-    RED = "\033[91m"
-    RESET = "\033[0m"
+#view all patients 
+def view_patients(patient_list):
+    if not patient_list:
+        print ("No patient records yet :()")
+        return
+    for patient in patient_list:
+        print(patient)
 
-    print(f"{'patient_id':<12}{'name':<12}{'DOB':<12}{'HR':<8}{'BP':<10}{'Temp':<10}{'Time':<8}")
+    typeprint(f"{'patient_id':<12}{'name':<12}{'DOB':<12}{'HR':<8}{'BP':<10}{'Temp':<10}{'Time':<8}")
     for p in patient_list:
         systolic, diastolic = map(int, p["BP"].split('/')) #turning strings into integer and split at /
         #check for abnormality
@@ -48,21 +94,13 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, Time):
 
         print(f"{p['patient_id']:<8}{p['name']:<12}{p['DOB']:<12}{p['HR']:<6}{p['BP']:<10}{bp_display:<10}{p['Temp']:<6}{p['Time']:<8}")
 
-
-#view all patients 
-def view_patients(patient_list):
-    if not patient_list:
-        print ("No patient records yet :()")
-    for patient in patient_list:
-        print(patient)
-
 #search pts by ID
 def search_patient(patient_list, patient_id):
     for patient in patient_list:
         if patient["patient_id"] == patient_id:
             print("\nPatient Record Found!!")
             print(f"{'ID':<10}{'Name':<12}{'DOB':<12}")
-            print(f"{patient['patient_id']:<10}{patient['name']:<12}{patient[DOB]:<12}")
+            print(f"{patient['patient_id']:<10}{patient['name']:<12}{patient['DOB']:<12}")
             return
     print("\nNo patient found with that ID, try again :D")
 
@@ -84,13 +122,45 @@ def count_abnormal_BP(patient_list, sys_low=90, sys_high=150, dias_low=50, dias_
 
     return count 
     
-print(f"Abnormal BP count:", count_abnormal_BP(vitals_log))
+#update patient vitals
+def update_vitals(patient_list, patient_id):
+    for patient in patient_list:
+        if patient["patient_id"] == patient_id:
+            print("\nPatient Found! Go ahead and enter the updated vital!\n")
 
-#starting interraction
+            new_HR = input("Updated Heart Rate: ")
+            new_BP = input("Updated Blood Pressure: ")
+            new_temp = input("Updated Temperature: ")
+
+            new_Time = datetime.now().strftime("%I:%M %p")
+
+            patient["HR"] = new_HR
+            patient["BP"] = new_BP
+            patient["Temp"] = new_temp
+            patient["Time"] = new_Time
+
+            save_to_csv(patient)
+            print("\nVitals updated successfully :D\n")
+            print(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<12}{patient['HR']:<6}{patient['BP']:<10}{patient['Temp']:<6}{patient['Time']:<8}")
+            return
+    print("\nNo patient found with that ID, try again!\n")
+
+#main program
 if __name__ == "__main__":
     print ("Welcome to Smart Record App :D")
+    if __name__ == "__main__":
+        vitals_log = load_from_csv() #restores old record from csv
+    
     while True:
-        print("\nOptions: 1 = add patient, 2 = view patients, 3 = abnormal BP count, 4 = abnormal HR count, 5 = search patient, 6 = exit")
+        print("\nOptions:")
+        print("1 = Add patient")
+        print("2 = View patients")
+        print("3 = Abnormal BP count")
+        print("4 = Abnormal HR count")
+        print("5 = Search patient")
+        print("6 = Update patient vitals")
+        print("7 = Exit")
+        
         choice = input("please select your choice:")
         if choice == "1":
             patient_id = input("Patient ID: ")
@@ -101,7 +171,6 @@ if __name__ == "__main__":
             Temp = input("Temperature: ")
             Time = input("Time: ")
             add_patient(vitals_log, patient_id, name, DOB, HR, BP, Temp, Time)
-
         elif choice == "2":
             view_patients(vitals_log)
         elif choice == "3":
@@ -112,23 +181,10 @@ if __name__ == "__main__":
             search_id = input("Please enter patient ID to search: ")
             search_patient(vitals_log, search_id)
         elif choice == "6":
+            update_id = input("Enter Patient ID to update: ")
+            update_vitals(vitals_log, update_id)
+        elif choice == "7":
             print("It's a good day to save lives! See you later!!")
             break
         else:
             print("This choice does not exist! Try Again :D")
-
-#take data and save to .csv file 
-def save_to_csv(patient_list, filename= "vital_log.csv"):
-    #write header if file doesn't exist
-    file_exists = os.path.isfile(filename) #checks if file exists
-
-    with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
-        writer =csv.writer(file) #writer helper
-
-        if not file_exists:
-            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "Time"])
-
-        for p in patient_list: #loop through pts dictionary inside the list and add new row 
-            writer.writerow([p["patient_id"], p["name"], p["DOB"], p["HR"], p["BP"], p["Temp"], p["Time"]])
-
-
