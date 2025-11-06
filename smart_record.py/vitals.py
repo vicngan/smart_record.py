@@ -29,12 +29,13 @@ def load_from_csv(filename="patient_list.csv"):
                 row["Temp"] = float(row["Temp"])
     return patient_list
 
-patient_list = load_from_csv
+patient_list = load_from_csv()
 
 #take data and save to .csv file 
-def save_to_csv(patient_list, filename= "patient_list.csv"):
+def save_to_csv(patient, filename= "patient_list.csv"):
     #write header if file doesn't exist
     file_exists = os.path.isfile(filename) #checks if file exists
+    
     with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
         writer =csv.writer(file) #writer helper
         if not file_exists:
@@ -42,10 +43,8 @@ def save_to_csv(patient_list, filename= "patient_list.csv"):
         writer.writerow([
             patient["patient_id"], patient["name"], patient["DOB"],
             patient["HR"], patient["BP"], patient["Temp"]
-        ]) #writing patient data to the csv.
-        for patient in patient_list[-1:]:  # only newest entry
-            writer.writerow([patient["patient_id"], patient["name"], patient["DOB"], patient["HR"], patient["BP"], patient["Temp"]])
-
+            ])
+        
 
 #add patient 
 def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp):
@@ -192,6 +191,7 @@ def abnormal_summary(patient_list, HR_low=40, HR_high=110, sys_low=90, sys_high=
             status.append ("BP abnormal!")
         status = ", ".join(status) if status else "Normal"
 
+        print(f"{p['patient_id']:<8}{p[name]:<12}{hr_display:<6}{hr_display:<10}{bp_display:<10}{status:<12}")
 
 #update patient vitals
 def update_vitals(patient_list, patient_id):
@@ -261,25 +261,6 @@ if __name__ == "__main__":
 
 #---------------------------------------- WEBPAGE GUI -------------------------------------------
 
-def launch_gui(patient_list):
-    root = tk.Tk()
-    root.title("✨ Smart Record App ✨")
-    root.geometry("700x500")
-    root.configure(bg="#FFF0F5")
-    
-    #header
-    tk.Label(root, text="Welcome to your Smart Record App ✨", font=("Helvetica", 18, "bold"), bg="#FFF0F5").pack(pady=10)
-    
-    #butttons
-    tk.Button(root, text="Add New Patient", width=20, command=lambda: add_patient(patient_list)).pack(pady=5)
-    tk.Button(root, text="View Patients", width=20, command=lambda: view_patients(patient_list)).pack(pady=5)
-    tk.Button(root, text="Search Patient", width=20, command=lambda: search_patient(patient_list)).pack(pady=5)
-    tk.Button(root, text="Abnormal Summary", width=20, command=lambda: abnormal_summary(patient_list)).pack(pady=5)
-    tk.Button(root, text="Update New Vitals", width=20, command=lambda: update_vitals(patient_list)).pack(pady=5)
-    tk.Button(root, text="Exit", width=20, command=root.destroy).pack(pady=20)
-
-    root.mainloop()
-
 #user input
 def gui_add_patient(patient_list):
     patient_id = simpledialog.askstring("Input", "Patient ID: ") #first (window), second argument (question)
@@ -295,6 +276,7 @@ def gui_view_patients(patient_list):
     if not patient_list:
         messagebox.showinfo("Info", "No patient records found, try again!")
         return
+    all_data = "" #initialize data first
     all_data += "-"*50 +"\n" #take char "-" and repeat *(x) time and \n add new line
     for p in patient_list:
         all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']}\n"
@@ -353,3 +335,22 @@ def gui_update_vitals(patient_list):
     update_vitals(patient_list, update_id)
 
 
+def launch_gui(patient_list):
+    root = tk.Tk()
+    root.title("✨ Smart Record App ✨")
+    root.geometry("700x500")
+    root.configure(bg="#FFF0F5")
+    
+    #header
+    tk.Label(root, text="Welcome to your Smart Record App ✨", font=("Helvetica", 18, "bold"), bg="#FFF0F5").pack(pady=10)
+    
+    #butttons
+    tk.Button(root, text="Add New Patient", width=20, command=lambda: gui_add_patient(patient_list)).pack(pady=5)
+    tk.Button(root, text="View Patients", width=20, command=lambda: gui_view_patients(patient_list)).pack(pady=5)
+    tk.Button(root, text="Search Patient", width=20, command=lambda: gui_search_patients(patient_list)).pack(pady=5)
+    tk.Button(root, text="Abnormal Summary", width=20, command=lambda: gui_abnormal_summary(patient_list)).pack(pady=5)
+    tk.Button(root, text="Update New Vitals", width=20, command=lambda: gui_update_vitals(patient_list)).pack(pady=5)
+    tk.Button(root, text="Exit", width=20, command=root.destroy).pack(pady=20)
+
+    all_data = ""
+    root.mainloop()
