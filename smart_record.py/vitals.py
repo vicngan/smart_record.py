@@ -39,15 +39,15 @@ def save_to_csv(patient, filename= "patient_list.csv"):
     with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
         writer =csv.writer(file) #writer helper
         if not file_exists:
-            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC"])
+            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"])
         writer.writerow([
             patient["patient_id"], patient["name"], patient["DOB"],
-            patient["HR"], patient["BP"], patient["Temp"], patient["CC"]
+            patient["HR"], patient["BP"], patient["Temp"], patient["CC"], patient["Diagnosis"]
             ])
         
 
 #add patient 
-def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "" ):
+def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "", diagnosis= "" ):
     from datetime import datetime
     #DOB format
     try:
@@ -68,7 +68,8 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
         "HR": HR,
         "BP": BP,
         "Temp": Temp,
-        "CC" : chief_complaint
+        "CC" : chief_complaint,
+        "Diagnosis": diagnosis,
     }
 
     patient_list.append(patient)
@@ -95,10 +96,10 @@ def view_patients(patient_list):
         print ("No patient records yet :()")
         return
 
-    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}")
+    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}{'Diagnosis':<20'}")
     print("-" *80)
     for patient in patient_list:
-        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}")
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}{p.get('Diagnosis',''):<20}")
 
 
     for p in patient_list:
@@ -214,6 +215,7 @@ def update_vitals(patient_list, patient_id):
             new_HR = input("Updated Heart Rate: ")
             new_BP = input("Updated Blood Pressure: ")
             new_temp = input("Updated Temperature: ")
+            new_diag = input("Updated Diagnosis: ")
 
             new_Time = datetime.now().strftime("%I:%M %p")
 
@@ -221,10 +223,11 @@ def update_vitals(patient_list, patient_id):
             patient["BP"] = new_BP
             patient["Temp"] = new_temp
             patient["Time"] = new_Time
+            patient["Diagnosis"] = new_diag
 
             save_to_csv(patient)
             typeprint("\nVitals updated successfully :D\n")
-            typeprint(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}{patient['BP']:<12}{patient['Temp']:<8}")
+            typeprint(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}{patient['BP']:<12}{patient['Temp']:<8}{patient['CC']:<20}{patient['Diagnosis']:20}")
             return
     typeprint("\nNo patient found with that ID, try again!\n")
 
@@ -253,7 +256,8 @@ if __name__ == "__main__":
             BP = input("Blood Pressure: ")
             Temp = input("Temperature: ")
             CC = input("Chief Concerns: ")
-            add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC)
+            Diagnosis = input("Enter Patient Diagnosis: ")
+            add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC, Diagnosis)
         elif choice == "2":
             view_patients(patient_list)
         elif choice == "3":
@@ -282,10 +286,11 @@ def gui_add_patient(patient_list):
     HR = simpledialog.askstring("Input", "Heart Rate: ")
     BP = simpledialog.askstring("Input", "Blood Pressure: ")
     Temp = simpledialog.askstring("Input", "Temperature: ")
-    CC = simpledialog("Input", "Chief Complaints: ")
+    CC = simpledialog.askstring("Input", "Chief Complaints: ")
+    Diagnosis = simpledialog.askstring("Input", "Patient Diagnosis: ")
     
 
-    add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC)
+    add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC, Diagnosis)
 
 def gui_view_patients(patient_list):
     if not patient_list:
@@ -294,7 +299,7 @@ def gui_view_patients(patient_list):
     all_data = "" #initialize data first
     all_data += "-"*50 +"\n" #take char "-" and repeat *(x) time and \n add new line
     for p in patient_list:
-        all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']} | {p['CC']} \n"
+        all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']} | {p['CC']} | {p['Diagnosis']} \n"
     messagebox.showinfo("All Patients", all_data)
 
 def gui_search_patients(patient_list):
