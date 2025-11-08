@@ -1,0 +1,2 @@
+patient_id,name,DOB,HR,BP,Temp,CC,Diagnosis
+1,vic,10/20/2020,89,140/50,99,flu,cancer

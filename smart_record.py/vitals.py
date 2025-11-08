@@ -34,7 +34,7 @@ def load_from_csv(filename="patient_list.csv"):
 patient_list = load_from_csv()
 
 #take data and save to .csv file 
-def save_to_csv(patient_list, filename= "patient_list.csv"):
+def save_to_csv(patient, filename= "patient_list.csv"):
     #write header if file doesn't exist
     file_exists = os.path.isfile(filename) #checks if file exists
     
@@ -44,9 +44,10 @@ def save_to_csv(patient_list, filename= "patient_list.csv"):
             writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"])
         for p in patient_list:
             writer.writerow([
-                p["patient_id"], p["name"], p["DOB"],
-                p["HR"], p["BP"], p["Temp"], p["CC"], p["Diagnosis"]
-                ])
+            patient["patient_id"], patient["name"], patient["DOB"],
+            patient["HR"], patient["BP"], patient["Temp"],
+            patient["CC"], patient["Diagnosis"], patient["RN_AP"]
+        ])
 
 def save_to_json(patient_list, filename= JSON_FILE):
     with open(filename, "w") as f:
@@ -56,6 +57,8 @@ def save_to_json(patient_list, filename= JSON_FILE):
 
 #add patient 
 def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "", diagnosis= "" ):
+    RN_AP = input("Personel Initials: ")
+
     from datetime import datetime
     #DOB format
     try:
@@ -78,15 +81,16 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
         "Temp": Temp,
         "CC" : CC,
         "Diagnosis": Diagnosis,
+        "RN_AP": RN_AP
     }
 
     patient_list.append(patient)
-    save_to_csv(patient_list)
-    save_to_json(patient_list)
+    save_to_csv(patient)
+    save_to_json(patient)
     
     typeprint("\nNew Patient Added Successfully! 🎀")
+    
     view_patients(patient_list)
-
     systolic, diastolic = map(int, BP.split ("/"))
     if int(HR) < 40 or int(HR) > 110 or systolic < 90 or systolic > 150 or diastolic < 50 or diastolic > 100:
         messagebox.showwarning("⚠️ Abnormal Vitals Alert", f"{name}'s vitals are abnormal!")
@@ -111,10 +115,10 @@ def view_patients(patient_list):
         print ("No patient records yet )")
         return
 
-    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}{'Diagnosis':<20'}")
+    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}{'Diagnosis':<20}")
     print("-" *80)
     for patient in patient_list:
-        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}{p.get('Diagnosis',''):<20}")
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}{p.get('Diagnosis',''):<20}{p['RN_AP']:<6}")
 
 
     for p in patient_list:
@@ -128,7 +132,7 @@ def view_patients(patient_list):
         else:
             bp_display = p['BP'] #highlight significant data without affecting actual data
 
-        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{bp_display:<12}{p['Temp']:<8}")
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{bp_display:<12}{p['Temp']:<8}{p['RN_AP']:<6}")
 
 #search pts by ID
 def search_patient(patient_list, patient_id):
@@ -259,6 +263,7 @@ def update_vitals(patient_list, patient_id):
             new_BP = input("Updated Blood Pressure: ")
             new_temp = input("Updated Temperature: ")
             new_diag = input("Updated Diagnosis: ")
+            new_RN_AP = input("Personel Initials: ")
 
             new_Time = datetime.now().strftime("%I:%M %p")
 
@@ -267,6 +272,7 @@ def update_vitals(patient_list, patient_id):
             patient["Temp"] = new_temp
             patient["Time"] = new_Time
             patient["Diagnosis"] = new_diag
+            patient["RN_AP"] = new_RN_AP
 
             save_to_csv(patient)
             typeprint("\nVitals updated successfully :D\n")

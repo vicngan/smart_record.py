@@ -1,0 +1,12 @@
+[
+    {
+        "patient_id": "1",
+        "name": "vic",
+        "DOB": "10/20/2020",
+        "HR": "89",
+        "BP": "140/50",
+        "Temp": "99",
+        "CC": "flu",
+        "Diagnosis": "cancer"
+    }
+]
