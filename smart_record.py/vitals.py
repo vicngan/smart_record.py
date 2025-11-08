@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 import time
 import tkinter as tk
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox, simpledialog, ttk
+import matplotlib.pyplot as plt
 import json
 
 RED = "\033[91m"
@@ -16,6 +17,7 @@ def typeprint(text, speed=0.05): #print function
         print()
 
 CSV_FILE = "patient_list.csv" #create a csv file
+JSON_FILE = "patient_list.json"
 
 #list to store patients info
 def load_from_csv(filename="patient_list.csv"):
@@ -44,7 +46,12 @@ def save_to_csv(patient, filename= "patient_list.csv"):
             patient["patient_id"], patient["name"], patient["DOB"],
             patient["HR"], patient["BP"], patient["Temp"], patient["CC"], patient["Diagnosis"]
             ])
-        
+
+def save_to_json(patient_list, filename= JSON_FILE):
+    with open(filename, "w") as f:
+        json.dump(patient_list, f, indent=4)
+
+#------------------------------------ LOGISTICS -----------------------------
 
 #add patient 
 def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "", diagnosis= "" ):
@@ -73,10 +80,15 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
     }
 
     patient_list.append(patient)
-    save_to_csv(patient)
+    save_to_csv(patient_list)
+    save_to_json(patient_list)
     
     typeprint("\nNew Patient Added Successfully! 🎀")
     view_patients(patient_list)
+
+    systolic, diastolic = map(int, BP.split ("/"))
+    if int(HR) < 40 or int(HR) > 110 or systolic < 90 or systolic > 150 or diastolic < 50 or diastolic > 100:
+        messagebox.showwarning("⚠️ Abnormal Vitals Alert", f"{name}'s vitals are abnormal!")
 
 def save_data(patient_list, filename= 'patient_list.json'):
     with open(filename, "w") as f: #open write "w" mode as f (file nickname)
@@ -89,6 +101,8 @@ def load_data(filename='patient_list.json'):
             return json.load(f)
     except FileNotFoundError:
         return[]
+
+#------------------------------ SEARCH/DISPLAY -------------------------------
 
 #view all patients 
 def view_patients(patient_list):
@@ -120,10 +134,27 @@ def search_patient(patient_list, patient_id):
     for patient in patient_list:
         if patient["patient_id"] == patient_id:
             typeprint("\nPatient Record Found!!")
+
             print(f"{'ID':<10}{'Name':<15}{'DOB':<15}")
             typeprint(f"{patient['patient_id']:<10}{patient['name']:<15}{patient['DOB']:<15}")
             return
     typeprint("\nNo patient found with that ID, try again :D")
+
+def display_patients(patient_list): #display pt.lists
+    if not patient_list:
+        messagebox.showinfo("Info", "No Patient Found, Try Again!")
+        return 
+    
+    window = tk.Toplevel() #create a popup window on top of main app
+    window.title("All Patients") 
+    tree = ttk.Treeview(window, columns= ("ID", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"), show="headings") #table Tkinter/ hide first empty column 
+    for col in tree["column"]: #column names for table
+        tree.heading(col, text=col)
+        tree.column(col, width=100)
+    for p in patient_list:
+        tree.insert("", "end", values=(p["patient_id"], p["name"], p["DOB"], p["HR"], p["BP"], p["Temp"])) #insert a row in table at the end 
+    tree.pack(expand=True, fill="both") #place table in window and stretch to fill 
+    window.mainloop() #event loop for popup so it stays open instead of close instantly 
 
 #count abnormal HR
 def get_abnormal_HR(patient_list, HR_low=40, HR_high = 110): #return a list of patients whose HR is abnormal
@@ -206,6 +237,17 @@ def abnormal_summary(patient_list, HR_low=40, HR_high=110, sys_low=90, sys_high=
 
         typeprint(f"{p['patient_id']:<8}{p[name]:<12}{DOB:<15}{hr_display:<10}{bp_display:<12}{status:<12}")
 
+#------------------------------ EXPORT ----------------------------------------------
+def export_report(patient_list, filename="report"):
+    report = patient_list
+    with open (filename, "w", newline=" ") as f:
+        writer = csv.writer(f)
+        writer.writerow(["ID","Name","DOB","HR","BP","Temp"])
+        for p in report:
+            writer.writerow([p["patient_id"], p["name"], p["DOB"], p["HR"], p["BP"], p["Temp"]])
+        messagebox.showinfo("Export",f"Report saved as {filename}") 
+
+#--------------------------------- UPDATE ----------------------------------------
 #update patient vitals
 def update_vitals(patient_list, patient_id):
     for patient in patient_list:
@@ -231,7 +273,28 @@ def update_vitals(patient_list, patient_id):
             return
     typeprint("\nNo patient found with that ID, try again!\n")
 
-#main program
+#------------------------------ TREND PLOT ------------------------------------
+def plot_trend(patient_list, patient_id):
+    patient_data = [p for p in patient_list if p['patient_id']== patient_id]
+    if not patient_data:
+        messagebox.showerror("Error!", "Patient not found, Try Again!")
+        return
+    
+    times = [p["Time"] for p in patient_data]
+    HRs = [p["HR"] for p in patient_data]
+    BPs = [list(map(int, p["BP"].split("/"))) for p in patient_data]
+    systolics = [bp[0] for bp in BPs]
+    diastolics = [bp[1] for bp in BPs]
+
+    plt.plot(times, HRs, label="HR") #draw a line graph of "x" over time (y)
+    plt.plot(times, systolics, label="Systolic BP")
+    plt.plot(times, diastolics, label="Diastolic BP")
+    plt.xlabel("Time")
+    plt.ylabel("Vitals")
+    plt.title(f"Vitals Trend for Patient {patient_id}")
+    plt.legend() #shows a key legend
+    plt.show() #display
+#------------------------------- MAIN PROGRAM ----------------------------------
 if __name__ == "__main__":
     typeprint ("Welcome to Smart Record App :D")
     if __name__ == "__main__":
@@ -245,7 +308,8 @@ if __name__ == "__main__":
         print("4 = Abnormal HR count")
         print("5 = Search patient")
         print("6 = Update patient vitals")
-        print("7 = Exit")
+        print("7 = Export report")
+        print("8 = Exit")
         
         choice = input("please select your choice:")
         if choice == "1":
@@ -271,6 +335,8 @@ if __name__ == "__main__":
             update_id = input("Enter Patient ID to update: ")
             update_vitals(patient_list, update_id)
         elif choice == "7":
+            export_report(patient_list)
+        elif choice == "8":
             typeprint("It's a good day to save lives! See you later!!")
             break
         else:
@@ -354,6 +420,10 @@ def gui_update_vitals(patient_list):
     update_id = simpledialog.askstring("Update", "Please enter new updates: ")
     update_vitals(patient_list, update_id)
 
+def gui_plot_trend(patient_list):
+    pid = simpledialog.askstring ("Input", "Enter Patient ID for Chart") 
+    plot_trend(patient_list, pid) #draws trend graph 
+        #ask -> send answer -> graph
 
 def launch_gui(patient_list):
     root = tk.Tk()
@@ -370,7 +440,13 @@ def launch_gui(patient_list):
     tk.Button(root, text="Search Patient", width=20, command=lambda: gui_search_patients(patient_list)).pack(pady=5)
     tk.Button(root, text="Abnormal Summary", width=20, command=lambda: gui_abnormal_summary(patient_list)).pack(pady=5)
     tk.Button(root, text="Update New Vitals", width=20, command=lambda: gui_update_vitals(patient_list)).pack(pady=5)
+    tk.Button(root, text="Export Report", command=lambda: export_report(patient_list)).pack(pady=5)
+    tk.Button(root, text="Vitals Trend Chart", command=lambda: gui_plot_trend(patient_list)).pack(pady=5)
     tk.Button(root, text="Exit", width=20, command=root.destroy).pack(pady=20)
 
     all_data = ""
     root.mainloop()
+
+if __name__== "__main__":
+    patient_list = load_from_csv() #load all stored pts into patient_list
+    launch_gui(patient_list) #launch GUI
