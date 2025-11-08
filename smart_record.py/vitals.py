@@ -34,18 +34,19 @@ def load_from_csv(filename="patient_list.csv"):
 patient_list = load_from_csv()
 
 #take data and save to .csv file 
-def save_to_csv(patient, filename= "patient_list.csv"):
+def save_to_csv(patient_list, filename= "patient_list.csv"):
     #write header if file doesn't exist
     file_exists = os.path.isfile(filename) #checks if file exists
     
-    with open(filename, mode="a", newline="")as file: #open in append mode + "a" add to the end 
+    with open(filename, "w", newline="")as file: #open in write mode 
         writer =csv.writer(file) #writer helper
         if not file_exists:
             writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"])
-        writer.writerow([
-            patient["patient_id"], patient["name"], patient["DOB"],
-            patient["HR"], patient["BP"], patient["Temp"], patient["CC"], patient["Diagnosis"]
-            ])
+        for p in patient_list:
+            writer.writerow([
+                p["patient_id"], p["name"], p["DOB"],
+                p["HR"], p["BP"], p["Temp"], p["CC"], p["Diagnosis"]
+                ])
 
 def save_to_json(patient_list, filename= JSON_FILE):
     with open(filename, "w") as f:
@@ -75,8 +76,8 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
         "HR": HR,
         "BP": BP,
         "Temp": Temp,
-        "CC" : chief_complaint,
-        "Diagnosis": diagnosis,
+        "CC" : CC,
+        "Diagnosis": Diagnosis,
     }
 
     patient_list.append(patient)
@@ -107,7 +108,7 @@ def load_data(filename='patient_list.json'):
 #view all patients 
 def view_patients(patient_list):
     if not patient_list:
-        print ("No patient records yet :()")
+        print ("No patient records yet )")
         return
 
     print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}{'Diagnosis':<20'}")
