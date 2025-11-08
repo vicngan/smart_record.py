@@ -1,3 +1,2 @@
-patient_id,name,DOB,HR,BP,Temp
-001,vickky,10/20/2020,25,180/100,98
-003,dat ,09/02/2004,98,140/60,98
+patient_id,name,DOB,HR,BP,Temp,CC,Diagnosis
+1,vic,10/20/2020,89,140/50,99,flu,cancer

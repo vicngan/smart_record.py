@@ -34,11 +34,11 @@ def load_from_csv(filename="patient_list.csv"):
 patient_list = load_from_csv()
 
 #take data and save to .csv file 
-def save_to_csv(patient, filename= "patient_list.csv"):
+def append_to_csv(patient, filename= "patient_list.csv"):
     #write header if file doesn't exist
     file_exists = os.path.isfile(filename) #checks if file exists
     
-    with open(filename, "w", newline="")as file: #open in write mode 
+    with open(filename, "a", newline="")as file: #open in append mode 
         writer =csv.writer(file) #writer helper
         if not file_exists:
             writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"])
@@ -50,7 +50,7 @@ def save_to_csv(patient, filename= "patient_list.csv"):
         ])
 
 def save_to_json(patient_list, filename= JSON_FILE):
-    with open(filename, "w") as f:
+    with open(filename, "a") as f:
         json.dump(patient_list, f, indent=4)
 
 #------------------------------------ LOGISTICS -----------------------------
@@ -79,13 +79,13 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
         "HR": HR,
         "BP": BP,
         "Temp": Temp,
-        "CC" : CC,
-        "Diagnosis": Diagnosis,
+        "CC" : chief_complaint,
+        "Diagnosis": diagnosis,
         "RN_AP": RN_AP
     }
 
     patient_list.append(patient)
-    save_to_csv(patient)
+    append_to_csv(patient)
     save_to_json(patient)
     
     typeprint("\nNew Patient Added Successfully! 🎀")
@@ -112,14 +112,11 @@ def load_data(filename='patient_list.json'):
 #view all patients 
 def view_patients(patient_list):
     if not patient_list:
-        print ("No patient records yet )")
+        print ("No patient records yet")
         return
 
-    print(f"{'PID':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<20}{'Diagnosis':<20}")
+    print(f"{'patient_id':<12}{'name':<15}{'DOB':<15}{'HR':<10}{'BP':<12}{'Temp':<8}{'CC':<15}{'Diagnosis':<15}{'RN_AP':<6}")
     print("-" *80)
-    for patient in patient_list:
-        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{p['BP']:<12}{p['Temp']:<8}{p.get('CC',''):<20}{p.get('Diagnosis',''):<20}{p['RN_AP']:<6}")
-
 
     for p in patient_list:
         systolic, diastolic = map(int, p["BP"].split('/')) #turning strings into integer and split at /
@@ -132,7 +129,7 @@ def view_patients(patient_list):
         else:
             bp_display = p['BP'] #highlight significant data without affecting actual data
 
-        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{bp_display:<12}{p['Temp']:<8}{p['RN_AP']:<6}")
+        typeprint(f"{p['patient_id']:<12}{p['name']:<15}{p['DOB']:<15}{p['HR']:<10}{bp_display:<12}{p['Temp']:<8}{p.get('CC',''):<15}{p.get('Diagnosis',''):<15}{p['RN_AP']:<6}")
 
 #search pts by ID
 def search_patient(patient_list, patient_id):
@@ -240,7 +237,7 @@ def abnormal_summary(patient_list, HR_low=40, HR_high=110, sys_low=90, sys_high=
             status.append ("BP abnormal!")
         status = ", ".join(status) if status else "Normal"
 
-        typeprint(f"{p['patient_id']:<8}{p[name]:<12}{DOB:<15}{hr_display:<10}{bp_display:<12}{status:<12}")
+        typeprint(f"{p['patient_id']:<8}{p['name']:<12}{'DOB':<15}{hr_display:<10}{bp_display:<12}{status:<12}")
 
 #------------------------------ EXPORT ----------------------------------------------
 def export_report(patient_list, filename="report"):
@@ -274,7 +271,7 @@ def update_vitals(patient_list, patient_id):
             patient["Diagnosis"] = new_diag
             patient["RN_AP"] = new_RN_AP
 
-            save_to_csv(patient)
+            append_to_csv(patient)
             typeprint("\nVitals updated successfully :D\n")
             typeprint(f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}{patient['BP']:<12}{patient['Temp']:<8}{patient['CC']:<20}{patient['Diagnosis']:20}")
             return
@@ -302,11 +299,10 @@ def plot_trend(patient_list, patient_id):
     plt.legend() #shows a key legend
     plt.show() #display
 #------------------------------- MAIN PROGRAM ----------------------------------
-if __name__ == "__main__":
+def run_cli(patient_list):
     typeprint ("Welcome to Smart Record App :D")
-    if __name__ == "__main__":
-        patient_list = load_from_csv() #restores old record from csv
-    
+    patient_list= load_from_csv() #restore old record 
+
     while True:
         print("\nOptions:")
         print("1 = Add patient")
@@ -319,6 +315,7 @@ if __name__ == "__main__":
         print("8 = Exit")
         
         choice = input("please select your choice:")
+        
         if choice == "1":
             patient_id = input("Patient ID: ")
             name = input("Patient name: ")
@@ -428,8 +425,8 @@ def gui_update_vitals(patient_list):
     update_vitals(patient_list, update_id)
 
 def gui_plot_trend(patient_list):
-    pid = simpledialog.askstring ("Input", "Enter Patient ID for Chart") 
-    plot_trend(patient_list, pid) #draws trend graph 
+    patient_id = simpledialog.askstring ("Input", "Enter Patient ID for Chart") 
+    plot_trend(patient_list, patient_id) #draws trend graph 
         #ask -> send answer -> graph
 
 def launch_gui(patient_list):
