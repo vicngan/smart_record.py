@@ -2,8 +2,6 @@ import csv
 import os
 from datetime import datetime
 import time
-import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
 import matplotlib.pyplot as plt
 import json
 
@@ -347,6 +345,8 @@ def run_cli(patient_list):
             typeprint("This choice does not exist! Try Again :D")
 
 #---------------------------------------- WEBPAGE GUI -------------------------------------------
+import tkinter as tk
+from tkinter import messagebox, simpledialog, ttk
 
 #user input
 def gui_add_patient(patient_list):
@@ -359,7 +359,6 @@ def gui_add_patient(patient_list):
     CC = simpledialog.askstring("Input", "Chief Complaints: ")
     Diagnosis = simpledialog.askstring("Input", "Patient Diagnosis: ")
     
-
     add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC, Diagnosis)
 
 def gui_view_patients(patient_list):
@@ -367,7 +366,7 @@ def gui_view_patients(patient_list):
         messagebox.showinfo("Info", "No patient records found, try again!")
         return
     all_data = "" #initialize data first
-    all_data += "-"*50 +"\n" #take char "-" and repeat *(x) time and \n add new line
+    all_data += "-"*70 +"\n" #take char "-" and repeat *(x) time and \n add new line
     for p in patient_list:
         all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']} | {p['CC']} | {p['Diagnosis']} \n"
     messagebox.showinfo("All Patients", all_data)
@@ -429,26 +428,54 @@ def gui_plot_trend(patient_list):
     plot_trend(patient_list, patient_id) #draws trend graph 
         #ask -> send answer -> graph
 
+#--------------------------------------- GUI STYLE  --------------------------------------
+def button_style(btn):
+    btn.configure(
+        bg="white",
+        fg="#5E4A47",
+        activebackground="#F6D7C2",
+        activeforeground="#5E4A47",
+        relief="groove",
+        bd=3,
+        font=("Helvetica Rounded", 12, "bold")
+    )
+    
+def make_cute(btn):
+    btn.config(bg="white", fg="#C47A88", relief="flat", bd=0, padx=12, pady=6, font=("Helvetica", 12))
+    btn.bind("<Enter>", lambda e: btn.config(bg="#FFE5D9"))
+    btn.bind("<Leave>", lambda e: btn.config(bg="white"))
+
+#--------------------------------------- GUI LAUNCH --------------------------------------
+from ttkbootstrap import Style
+import ttkbootstrap as ttk
+import tkinter as tk 
+
 def launch_gui(patient_list):
-    root = tk.Tk()
+    style = Style (theme="flatly")
+    root = style.master
     root.title("✨ Smart Record App ✨")
-    root.geometry("700x500")
+    root.geometry("800x500")
     root.configure(bg="#FFF0F5")
     
     #header
-    tk.Label(root, text="Welcome to your Smart Record App ✨", font=("Helvetica", 18, "bold"), bg="#FFF0F5").pack(pady=10)
-    
-    #butttons
-    tk.Button(root, text="Add New Patient", width=20, command=lambda: gui_add_patient(patient_list)).pack(pady=5)
-    tk.Button(root, text="View Patients", width=20, command=lambda: gui_view_patients(patient_list)).pack(pady=5)
-    tk.Button(root, text="Search Patient", width=20, command=lambda: gui_search_patients(patient_list)).pack(pady=5)
-    tk.Button(root, text="Abnormal Summary", width=20, command=lambda: gui_abnormal_summary(patient_list)).pack(pady=5)
-    tk.Button(root, text="Update New Vitals", width=20, command=lambda: gui_update_vitals(patient_list)).pack(pady=5)
-    tk.Button(root, text="Export Report", command=lambda: export_report(patient_list)).pack(pady=5)
-    tk.Button(root, text="Vitals Trend Chart", command=lambda: gui_plot_trend(patient_list)).pack(pady=5)
-    tk.Button(root, text="Exit", width=20, command=root.destroy).pack(pady=20)
+    title_label = ttk.Label(root, text="✨ Welcome to your Smart Record App ✨", font=("Helvetica Rounded", 22, "bold"), bg="#FFF0F5", fg="#5E4A47").pack(pady=20)
+    title_label.pack(pady=20)
 
-    all_data = ""
+    #butttons
+    buttons = [
+        ("Add New Patient", lambda: gui_add_patient(patient_list)),
+        ("View Patients", lambda: gui_view_patients(patient_list)),
+        ("Search Patient", lambda: gui_search_patients(patient_list)),
+        ("Abnormal Summary", lambda: gui_abnormal_summary(patient_list)),
+        ("Update New Vitals", lambda: gui_update_vitals(patient_list)),
+        ("Export Report", lambda: export_report(patient_list)),
+        ("Vitals Trend Chart", lambda: gui_plot_trend(patient_list)),
+        ("Exit", root.destroy)
+    ]
+
+    for text, command in buttons:
+        button_style(root, text, command)
+
     root.mainloop()
 
 if __name__== "__main__":
