@@ -16,6 +16,7 @@ def typeprint(text, speed=0.05): #print function
 
 CSV_FILE = "patient_list.csv" #create a csv file
 JSON_FILE = "patient_list.json"
+CSV_HEADERS = ["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis", "RN_AP", "Time"]
 
 #list to store patients info
 def load_from_csv(filename="patient_list.csv"):
@@ -24,28 +25,31 @@ def load_from_csv(filename="patient_list.csv"):
         with open(filename, mode="r", newline="") as file: #open csv. in read "r" mode; reading each row as dictionary
             reader = csv.DictReader(file)
             for row in reader: #loop through each row
+                hr_value = row.get("HR")
+                temp_value = row.get("Temp")
+                try:
+                    row["HR"] = int(hr_value) if hr_value not in (None, "") else 0
+                except ValueError:
+                    row["HR"] = 0
+                try:
+                    row["Temp"] = float(temp_value) if temp_value not in (None, "") else 0.0
+                except ValueError:
+                    row["Temp"] = 0.0
+                row["Time"] = row.get("Time") or row.get("timestamp") or ""
                 patient_list.append(row) #add dictionary to list
-                row["HR"] = int(row["HR"])
-                row["Temp"] = float(row["Temp"])
     return patient_list
 
 patient_list = load_from_csv()
 
 #take data and save to .csv file 
 def append_to_csv(patient, filename= "patient_list.csv"):
-    #write header if file doesn't exist
-    file_exists = os.path.isfile(filename) #checks if file exists
-    
-    with open(filename, "a", newline="")as file: #open in append mode 
-        writer =csv.writer(file) #writer helper
+    file_exists = os.path.isfile(filename)
+    with open(filename, "a", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=CSV_HEADERS)
         if not file_exists:
-            writer.writerow(["patient_id", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"])
-        for p in patient_list:
-            writer.writerow([
-            patient["patient_id"], patient["name"], patient["DOB"],
-            patient["HR"], patient["BP"], patient["Temp"],
-            patient["CC"], patient["Diagnosis"], patient["RN_AP"]
-        ])
+            writer.writeheader()
+        row = {field: patient.get(field, "") for field in CSV_HEADERS}
+        writer.writerow(row)
 
 def save_to_json(patient_list, filename= JSON_FILE):
     with open(filename, "a") as f:
@@ -54,8 +58,9 @@ def save_to_json(patient_list, filename= JSON_FILE):
 #------------------------------------ LOGISTICS -----------------------------
 
 #add patient 
-def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "", diagnosis= "" ):
-    RN_AP = input("Personel Initials: ")
+def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint= "", diagnosis= "", RN_AP=None ):
+    if RN_AP is None:
+        RN_AP = input("Personel Initials: ")
 
     from datetime import datetime
     #DOB format
@@ -79,7 +84,8 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
         "Temp": Temp,
         "CC" : chief_complaint,
         "Diagnosis": diagnosis,
-        "RN_AP": RN_AP
+        "RN_AP": RN_AP,
+        "Time": Time
     }
 
     patient_list.append(patient)
@@ -145,7 +151,7 @@ def display_patients(patient_list): #display pt.lists
         messagebox.showinfo("Info", "No Patient Found, Try Again!")
         return 
     
-    window = tk.Toplevel() #create a popup window on top of main app
+    window = ttk.Toplevel() #create a popup window on top of main app
     window.title("All Patients") 
     tree = ttk.Treeview(window, columns= ("ID", "name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis"), show="headings") #table Tkinter/ hide first empty column 
     for col in tree["column"]: #column names for table
@@ -281,14 +287,25 @@ def plot_trend(patient_list, patient_id):
     if not patient_data:
         messagebox.showerror("Error!", "Patient not found, Try Again!")
         return
-    
-    times = [p["Time"] for p in patient_data]
-    HRs = [p["HR"] for p in patient_data]
-    BPs = [list(map(int, p["BP"].split("/"))) for p in patient_data]
-    systolics = [bp[0] for bp in BPs]
-    diastolics = [bp[1] for bp in BPs]
 
-    plt.plot(times, HRs, label="HR") #draw a line graph of "x" over time (y)
+    cleaned_points = []
+    for idx, record in enumerate(patient_data, start=1):
+        label = record.get("Time") or f"Entry {idx}"
+        try:
+            hr_value = int(record["HR"])
+            systolic, diastolic = map(int, record["BP"].split("/"))
+        except (ValueError, TypeError, AttributeError):
+            continue
+        cleaned_points.append((label, hr_value, systolic, diastolic))
+
+    if not cleaned_points:
+        messagebox.showerror("Not Enough Data", "This patient does not have valid vitals to chart yet.")
+        return
+
+    times, HRs, systolics, diastolics = zip(*cleaned_points)
+
+    plt.figure(figsize=(8, 4))
+    plt.plot(times, HRs, marker="o", label="HR")
     plt.plot(times, systolics, label="Systolic BP")
     plt.plot(times, diastolics, label="Diastolic BP")
     plt.xlabel("Time")
@@ -345,40 +362,168 @@ def run_cli(patient_list):
             typeprint("This choice does not exist! Try Again :D")
 
 #---------------------------------------- WEBPAGE GUI -------------------------------------------
-import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+import ttkbootstrap as ttk
+from tkinter import messagebox, simpledialog, StringVar, PhotoImage
 
 #user input
 def gui_add_patient(patient_list):
-    patient_id = simpledialog.askstring("Input", "Patient ID: ") #first (window), second argument (question)
-    name = simpledialog.askstring("Input", "Patient Name: ")
-    DOB = simpledialog.askstring("Input", "Date of Birth: ")
-    HR = simpledialog.askstring("Input", "Heart Rate: ")
-    BP = simpledialog.askstring("Input", "Blood Pressure: ")
-    Temp = simpledialog.askstring("Input", "Temperature: ")
-    CC = simpledialog.askstring("Input", "Chief Complaints: ")
-    Diagnosis = simpledialog.askstring("Input", "Patient Diagnosis: ")
-    
-    add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, CC, Diagnosis)
+    form = ttk.Toplevel()
+    form.title("Add Patient ✨")
+    form.geometry("460x620")
+    form.resizable(False, False)
+    form.grab_set()
+
+    container = ttk.Frame(form, padding=24, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    ttk.Label(
+        container,
+        text="New Patient Intake 🌸",
+        style=STYLE_NAMES["tab_heading"]
+    ).pack(anchor="w")
+    ttk.Label(
+        container,
+        text="Drop in vitals and quick notes below. Everything stays inside this cozy popup.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=380,
+        justify="left"
+    ).pack(anchor="w", pady=(0, 16))
+
+    field_definitions = [
+        ("Patient ID", "patient_id"),
+        ("Patient Name", "name"),
+        ("Date of Birth (MM/DD/YYYY)", "DOB"),
+        ("Heart Rate", "HR"),
+        ("Blood Pressure (e.g. 120/80)", "BP"),
+        ("Temperature", "Temp"),
+        ("Chief Complaint", "CC"),
+        ("Diagnosis", "Diagnosis"),
+        ("Personnel Initials", "RN_AP")
+    ]
+
+    form_vars = {}
+    for label_text, key in field_definitions:
+        field_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+        field_frame.pack(fill="x", pady=6)
+        ttk.Label(
+            field_frame,
+            text=label_text,
+            style=STYLE_NAMES["tab_body"]
+        ).pack(anchor="w")
+        var = StringVar()
+        ttk.Entry(field_frame, textvariable=var).pack(fill="x", pady=(4, 0))
+        form_vars[key] = var
+
+    def submit():
+        values = {key: var.get().strip() for key, var in form_vars.items()}
+        required_keys = ["patient_id", "name", "DOB", "HR", "BP", "Temp", "RN_AP"]
+        missing = [key for key in required_keys if not values.get(key)]
+        if missing:
+            messagebox.showerror("Missing Info", "Please fill out all required fields before saving.")
+            return
+        add_patient(
+            patient_list,
+            values["patient_id"],
+            values["name"],
+            values["DOB"],
+            values["HR"],
+            values["BP"],
+            values["Temp"],
+            values.get("CC", ""),
+            values.get("Diagnosis", ""),
+            RN_AP=values["RN_AP"]
+        )
+        messagebox.showinfo("Success", "Patient added to the registry!")
+        form.destroy()
+
+    buttons_row = ttk.Frame(container, style=STYLE_NAMES["home"])
+    buttons_row.pack(fill="x", pady=(20, 0))
+    ttk.Button(
+        buttons_row,
+        text="Cancel",
+        command=form.destroy,
+        style=BUTTON_STYLE_NAMES["secondary"]
+    ).pack(side="left", fill="x", expand=True, padx=(0, 8))
+    ttk.Button(
+        buttons_row,
+        text="Save Patient",
+        command=submit,
+        style=BUTTON_STYLE_NAMES["primary"]
+    ).pack(side="left", fill="x", expand=True)
 
 def gui_view_patients(patient_list):
     if not patient_list:
-        messagebox.showinfo("Info", "No patient records found, try again!")
+        show_not_found_popup("No Patients Yet", "Once you add patients, they will appear in this pastel roster.")
         return
-    all_data = "" #initialize data first
-    all_data += "-"*70 +"\n" #take char "-" and repeat *(x) time and \n add new line
+
+    window = ttk.Toplevel()
+    window.title("Patient Roster 💖")
+    window.geometry("820x520")
+    window.resizable(False, False)
+    window.grab_set()
+
+    container = ttk.Frame(window, padding=24, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    ttk.Label(
+        container,
+        text="Patient Roster",
+        style=STYLE_NAMES["tab_heading"]
+    ).pack(anchor="w")
+    ttk.Label(
+        container,
+        text="Browse every patient with their key vitals. Scroll for more and close when done.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=540,
+        justify="left"
+    ).pack(anchor="w", pady=(0, 16))
+
+    columns = ("ID", "Name", "DOB", "HR", "BP", "Temp", "CC", "Diagnosis")
+    table_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+    table_frame.pack(fill="both", expand=True)
+
+    tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=12)
+    for col in columns:
+        tree.heading(col, text=col)
+        width = 80 if col in ("ID", "HR", "Temp") else 110
+        if col in ("CC", "Diagnosis"):
+            width = 150
+        tree.column(col, width=width, anchor="center")
+
     for p in patient_list:
-        all_data += f"{p['patient_id']} | {p['name']} | {p['DOB']} | {p['HR']} | {p['BP']} | {p['Temp']} | {p['CC']} | {p['Diagnosis']} \n"
-    messagebox.showinfo("All Patients", all_data)
+        tree.insert("", "end", values=(
+            p["patient_id"],
+            p["name"],
+            p["DOB"],
+            p["HR"],
+            p["BP"],
+            p["Temp"],
+            p.get("CC", ""),
+            p.get("Diagnosis", "")
+        ))
+
+    y_scroll = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=y_scroll.set)
+    tree.pack(side="left", fill="both", expand=True)
+    y_scroll.pack(side="right", fill="y")
+
+    ttk.Button(
+        container,
+        text="Close",
+        command=window.destroy,
+        style=BUTTON_STYLE_NAMES["secondary"]
+    ).pack(pady=14, ipadx=10)
 
 def gui_search_patients(patient_list):
     search_id = simpledialog.askstring("Search", "Enter Patient ID: ") 
+    if not search_id:
+        return
     for p in patient_list:
         if p["patient_id"] == search_id:
             info = f"{p['patient_id']} | {p['name']} | {p['DOB']}"
             messagebox.showinfo ("Patient Found", info)
             return
-    messagebox.showerror("Patient Not Found, Try Again!")
+    show_not_found_popup("Patient Not Found", "We couldn't find that patient ID. Double-check the digits or add a new record.")
 
 def gui_abnormal_summary(patient_list):
     if not patient_list:
@@ -429,52 +574,586 @@ def gui_plot_trend(patient_list):
         #ask -> send answer -> graph
 
 #--------------------------------------- GUI STYLE  --------------------------------------
-def button_style(btn):
-    btn.configure(
-        bg="white",
-        fg="#5E4A47",
-        activebackground="#F6D7C2",
-        activeforeground="#5E4A47",
-        relief="groove",
-        bd=3,
-        font=("Helvetica Rounded", 12, "bold")
+THEME_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "dashboard_theme.json")
+NOT_FOUND_LOGO = os.path.join(os.path.dirname(__file__), "app", "static", "not_found_logo.png")
+
+DASHBOARD_THEMES = {
+    "Pastel Blush": {
+        "base_theme": "litera",
+        "background": "#fff6fb",
+        "banner": {"bg": "#ffd9ec", "fg": "#7d2b49", "sub_fg": "#a55173"},
+        "panels": {
+            "patient": {"bg": "#fff8fc", "label_bg": "#fcd6ea", "label_fg": "#7d2b49", "border": "#f5b6d0"},
+            "monitor": {"bg": "#fff3f2", "label_bg": "#ffe0d7", "label_fg": "#8c3a2b", "border": "#f9c3b8"},
+            "report": {"bg": "#fef8ff", "label_bg": "#f5daf7", "label_fg": "#6f3b7a", "border": "#e9c0f0"}
+        },
+        "text": {"primary": "#5c1d34", "muted": "#91606f"},
+        "buttons": {
+            "primary": {"bg": "#f48fb1", "hover": "#f7a7c2", "fg": "#5c1d34", "border": "#f06292"},
+            "secondary": {"bg": "#ffe6f1", "hover": "#ffd6ea", "fg": "#6d3a4d", "border": "#f8bbd0"},
+            "info": {"bg": "#fde7f3", "hover": "#fad5eb", "fg": "#7d2d4d", "border": "#f7c2dd"},
+            "alert": {"bg": "#ffd2da", "hover": "#ffbac6", "fg": "#7c1d2a", "border": "#ff94a4"},
+            "accent": {"bg": "#fbcfe8", "hover": "#f5badf", "fg": "#6a2441", "border": "#f48fb1"},
+            "insight": {"bg": "#f8e7ff", "hover": "#f0d4ff", "fg": "#5b3173", "border": "#e7c2ff"},
+            "success": {"bg": "#d7f5e9", "hover": "#c5f0df", "fg": "#285c4d", "border": "#a4dec7"},
+            "danger": {"bg": "#ffc9de", "hover": "#ffb1cf", "fg": "#7c1d2a", "border": "#ff8fb8"}
+        }
+    },
+    "Mint Sorbet": {
+        "base_theme": "minty",
+        "background": "#f5fffb",
+        "banner": {"bg": "#d4f6ec", "fg": "#1f6657", "sub_fg": "#2f7d6b"},
+        "panels": {
+            "patient": {"bg": "#f1fffa", "label_bg": "#d1f4e5", "label_fg": "#1a5a4d", "border": "#a8e5cf"},
+            "monitor": {"bg": "#eefcf5", "label_bg": "#c7f1df", "label_fg": "#2b6a5b", "border": "#9edec7"},
+            "report": {"bg": "#f6fffb", "label_bg": "#d5f6ea", "label_fg": "#245c51", "border": "#b3ebd6"}
+        },
+        "text": {"primary": "#1d5f4f", "muted": "#3e7b6d"},
+        "buttons": {
+            "primary": {"bg": "#8be0c1", "hover": "#78d7b6", "fg": "#0f4437", "border": "#5ec9a5"},
+            "secondary": {"bg": "#e0fff4", "hover": "#ccf7e7", "fg": "#215c4e", "border": "#b5efda"},
+            "info": {"bg": "#cff5ff", "hover": "#b7ebfa", "fg": "#16526b", "border": "#9de0f3"},
+            "alert": {"bg": "#ffe0c7", "hover": "#ffd0ab", "fg": "#7c3f18", "border": "#ffb880"},
+            "accent": {"bg": "#c9f3e7", "hover": "#b2eadc", "fg": "#1f5f52", "border": "#9ddfce"},
+            "insight": {"bg": "#e5ecff", "hover": "#d4ddff", "fg": "#2f3f7a", "border": "#b7c4ff"},
+            "success": {"bg": "#c4f1d5", "hover": "#b0e7c7", "fg": "#1f5a35", "border": "#90d7ab"},
+            "danger": {"bg": "#ffd6da", "hover": "#ffc1c7", "fg": "#7c1d28", "border": "#ffa0ad"}
+        }
+    },
+    "Lilac Haze": {
+        "base_theme": "pulse",
+        "background": "#f7f3ff",
+        "banner": {"bg": "#e7dbff", "fg": "#4b2a73", "sub_fg": "#6a3c9a"},
+        "panels": {
+            "patient": {"bg": "#fbf6ff", "label_bg": "#e8dbff", "label_fg": "#4b2a73", "border": "#cdb0f2"},
+            "monitor": {"bg": "#fdf3ff", "label_bg": "#f2dcff", "label_fg": "#6a3c9a", "border": "#dcb8ff"},
+            "report": {"bg": "#f6f1ff", "label_bg": "#e0d5ff", "label_fg": "#3f2a6b", "border": "#c3b0f0"}
+        },
+        "text": {"primary": "#4b2a73", "muted": "#6d4a93"},
+        "buttons": {
+            "primary": {"bg": "#c6a8ff", "hover": "#b795ff", "fg": "#351f5c", "border": "#a780ff"},
+            "secondary": {"bg": "#efe8ff", "hover": "#e1d4ff", "fg": "#50327c", "border": "#d1bfff"},
+            "info": {"bg": "#dfe7ff", "hover": "#cbd7ff", "fg": "#273e78", "border": "#b2c3ff"},
+            "alert": {"bg": "#ffd7ed", "hover": "#ffc0e1", "fg": "#7a1f4d", "border": "#ff9fce"},
+            "accent": {"bg": "#f3d9ff", "hover": "#e9c1ff", "fg": "#4f2478", "border": "#d8a6ff"},
+            "insight": {"bg": "#d5e3ff", "hover": "#c0d3ff", "fg": "#1f3f7a", "border": "#a5c0ff"},
+            "success": {"bg": "#dae8ff", "hover": "#c5d9ff", "fg": "#274164", "border": "#b3ccff"},
+            "danger": {"bg": "#ffced9", "hover": "#ffb6c6", "fg": "#7c1d2a", "border": "#ff91a9"}
+        }
+    }
+}
+
+STYLE_NAMES = {
+    "home": "DashboardHome.TFrame",
+    "banner": "DashboardBanner.TFrame",
+    "banner_title": "DashboardBannerTitle.TLabel",
+    "banner_subtitle": "DashboardBannerSubtitle.TLabel",
+    "patient_panel": "DashboardPatient.TLabelframe",
+    "monitor_panel": "DashboardMonitor.TLabelframe",
+    "report_panel": "DashboardReport.TLabelframe",
+    "tab_heading": "DashboardTabHeading.TLabel",
+    "tab_body": "DashboardBody.TLabel"
+}
+
+BUTTON_STYLE_NAMES = {
+    "primary": "DashboardPrimary.TButton",
+    "secondary": "DashboardSecondary.TButton",
+    "info": "DashboardInfo.TButton",
+    "alert": "DashboardAlert.TButton",
+    "accent": "DashboardAccent.TButton",
+    "insight": "DashboardInsight.TButton",
+    "success": "DashboardSuccess.TButton",
+    "danger": "DashboardDanger.TButton"
+}
+
+_NOT_FOUND_LOGO_IMAGE = None
+
+
+def get_not_found_logo_image():
+    """Lazy-load and cache the pastel not-found logo."""
+    global _NOT_FOUND_LOGO_IMAGE
+    if _NOT_FOUND_LOGO_IMAGE is None and os.path.exists(NOT_FOUND_LOGO):
+        try:
+            _NOT_FOUND_LOGO_IMAGE = PhotoImage(file=NOT_FOUND_LOGO)
+        except Exception:
+            _NOT_FOUND_LOGO_IMAGE = None
+    return _NOT_FOUND_LOGO_IMAGE
+
+
+def show_not_found_popup(title, message):
+    """Display a custom popup with the pastel not-found logo and helpful text."""
+    popup = ttk.Toplevel()
+    popup.title(title)
+    popup.geometry("420x420")
+    popup.resizable(False, False)
+    popup.grab_set()
+
+    frame = ttk.Frame(popup, padding=24, style=STYLE_NAMES["home"])
+    frame.pack(fill="both", expand=True)
+
+    logo = get_not_found_logo_image()
+    if logo:
+        logo_label = ttk.Label(frame, image=logo)
+        logo_label.image = logo
+        logo_label.pack(pady=(0, 16))
+
+    ttk.Label(
+        frame,
+        text=title,
+        style=STYLE_NAMES["tab_heading"]
+    ).pack(anchor="center", pady=(0, 8))
+    ttk.Label(
+        frame,
+        text=message,
+        style=STYLE_NAMES["tab_body"],
+        wraplength=320,
+        justify="center"
+    ).pack(anchor="center")
+
+    ttk.Button(
+        frame,
+        text="Close",
+        command=popup.destroy,
+        style=BUTTON_STYLE_NAMES["secondary"]
+    ).pack(pady=20, ipadx=10)
+
+
+def load_saved_theme(default_theme):
+    """Return the saved theme if present, otherwise fall back to default."""
+    try:
+        with open(THEME_CONFIG_PATH, "r", encoding="utf-8") as config_file:
+            data = json.load(config_file)
+            saved_theme = data.get("theme")
+            if saved_theme in DASHBOARD_THEMES:
+                return saved_theme
+    except FileNotFoundError:
+        pass
+    except json.JSONDecodeError:
+        pass
+    return default_theme
+
+
+def save_theme_choice(theme_name):
+    """Persist the chosen theme so the dashboard opens with it next time."""
+    try:
+        with open(THEME_CONFIG_PATH, "w", encoding="utf-8") as config_file:
+            json.dump({"theme": theme_name}, config_file, indent=2)
+    except OSError:
+        # Non-fatal; app can continue without saving.
+        pass
+
+
+def apply_dashboard_theme(style, root, theme_key):
+    """Apply the selected pastel theme across frames, panels, and buttons."""
+    theme = DASHBOARD_THEMES[theme_key]
+    style.theme_use(theme["base_theme"])
+
+    root.configure(bg=theme["background"])
+    style.configure(STYLE_NAMES["home"], background=theme["background"])
+    style.configure("TNotebook", padding=0)
+
+    banner_colors = theme["banner"]
+    style.configure(
+        STYLE_NAMES["banner"],
+        background=banner_colors["bg"],
+        borderwidth=0,
+        relief="flat"
     )
-    
-def make_cute(btn):
-    btn.config(bg="white", fg="#C47A88", relief="flat", bd=0, padx=12, pady=6, font=("Helvetica", 12))
-    btn.bind("<Enter>", lambda e: btn.config(bg="#FFE5D9"))
-    btn.bind("<Leave>", lambda e: btn.config(bg="white"))
+    style.configure(
+        STYLE_NAMES["banner_title"],
+        background=banner_colors["bg"],
+        foreground=banner_colors["fg"],
+        font=("Helvetica Rounded", 26, "bold")
+    )
+    style.configure(
+        STYLE_NAMES["banner_subtitle"],
+        background=banner_colors["bg"],
+        foreground=banner_colors["sub_fg"],
+        font=("Helvetica", 13)
+    )
+
+    text_colors = theme["text"]
+    style.configure(
+        STYLE_NAMES["tab_heading"],
+        background=theme["background"],
+        foreground=text_colors["primary"],
+        font=("Helvetica Rounded", 16, "bold")
+    )
+    style.configure(
+        STYLE_NAMES["tab_body"],
+        background=theme["background"],
+        foreground=text_colors["muted"],
+        font=("Helvetica", 11)
+    )
+
+    for panel_name, labelframe_style in (
+        ("patient", STYLE_NAMES["patient_panel"]),
+        ("monitor", STYLE_NAMES["monitor_panel"]),
+        ("report", STYLE_NAMES["report_panel"])
+    ):
+        palette = theme["panels"][panel_name]
+        style.configure(
+            labelframe_style,
+            background=palette["bg"],
+            bordercolor=palette["border"],
+            relief="ridge",
+            foreground=palette["label_fg"]
+        )
+        style.configure(
+            f"{labelframe_style}.Label",
+            background=palette["label_bg"],
+            foreground=palette["label_fg"],
+            font=("Helvetica Rounded", 13, "bold")
+        )
+
+    for role, style_name in BUTTON_STYLE_NAMES.items():
+        palette = theme["buttons"][role]
+        style.configure(
+            style_name,
+            background=palette["bg"],
+            foreground=palette["fg"],
+            bordercolor=palette["border"],
+            focusthickness=1,
+            focuscolor=palette["border"],
+            padding=(16, 10),
+            font=("Helvetica", 12, "bold")
+        )
+        style.map(
+            style_name,
+            background=[("active", palette["hover"]), ("pressed", palette["hover"])],
+            foreground=[("disabled", "#a0a0a0")]
+        )
+
+
+def create_dashboard_button(parent, label, command, style_role):
+    btn = ttk.Button(parent, text=label, command=command, style=BUTTON_STYLE_NAMES[style_role])
+    btn.pack(fill="x", pady=6, ipady=2)
+    return btn
+
 
 #--------------------------------------- GUI LAUNCH --------------------------------------
-from ttkbootstrap import Style
 import ttkbootstrap as ttk
-import tkinter as tk 
+from ttkbootstrap.constants import *
+
 
 def launch_gui(patient_list):
-    style = Style (theme="flatly")
-    root = style.master
-    root.title("✨ Smart Record App ✨")
-    root.geometry("800x500")
-    root.configure(bg="#FFF0F5")
-    
-    #header
-    title_label = ttk.Label(root, text="✨ Welcome to your Smart Record App ✨", font=("Helvetica Rounded", 22, "bold"), bg="#FFF0F5", fg="#5E4A47").pack(pady=20)
-    title_label.pack(pady=20)
+    default_theme = "Pastel Blush"
+    active_theme = load_saved_theme(default_theme)
+    root = ttk.Window(
+        title="✨ Smart Record App ✨",
+        themename=DASHBOARD_THEMES[active_theme]["base_theme"]
+    )
+    root.geometry("980x640")
 
-    #butttons
-    buttons = [
-        ("Add New Patient", lambda: gui_add_patient(patient_list)),
-        ("View Patients", lambda: gui_view_patients(patient_list)),
-        ("Search Patient", lambda: gui_search_patients(patient_list)),
-        ("Abnormal Summary", lambda: gui_abnormal_summary(patient_list)),
-        ("Update New Vitals", lambda: gui_update_vitals(patient_list)),
-        ("Export Report", lambda: export_report(patient_list)),
-        ("Vitals Trend Chart", lambda: gui_plot_trend(patient_list)),
-        ("Exit", root.destroy)
-    ]
+    style = ttk.Style()
+    apply_dashboard_theme(style, root, active_theme)
 
-    for text, command in buttons:
-        button_style(root, text, command)
+    notebook = ttk.Notebook(root)
+    notebook.pack(expand=True, fill="both", padx=16, pady=16)
+
+    home_frame = ttk.Frame(notebook, padding=30, style=STYLE_NAMES["home"])
+    patient_tab = ttk.Frame(notebook, padding=30, style=STYLE_NAMES["home"])
+    abnormal_tab = ttk.Frame(notebook, padding=30, style=STYLE_NAMES["home"])
+    export_tab = ttk.Frame(notebook, padding=30, style=STYLE_NAMES["home"])
+
+    notebook.add(home_frame, text="🏠 Home")
+    notebook.add(patient_tab, text="🩺 Patients")
+    notebook.add(abnormal_tab, text="⚠️ Monitor")
+    notebook.add(export_tab, text="📄 Export")
+
+    banner = ttk.Frame(home_frame, padding=24, style=STYLE_NAMES["banner"])
+    banner.pack(fill="x", pady=(0, 25))
+    banner.columnconfigure(0, weight=1)
+
+    ttk.Label(
+        banner,
+        text="Smart Record Nurse Station",
+        style=STYLE_NAMES["banner_title"]
+    ).grid(row=0, column=0, sticky="w")
+    ttk.Label(
+        banner,
+        text="Soft pastels, quick actions, and gentle alerts for calmer charting 💖",
+        style=STYLE_NAMES["banner_subtitle"]
+    ).grid(row=1, column=0, sticky="w", pady=(6, 0))
+
+    selector_container = ttk.Frame(banner, style=STYLE_NAMES["banner"])
+    selector_container.grid(row=0, column=1, rowspan=2, sticky="e")
+    ttk.Label(
+        selector_container,
+        text="Theme",
+        style=STYLE_NAMES["banner_subtitle"]
+    ).pack(side="left", padx=(0, 8))
+
+    theme_var = StringVar(value=active_theme)
+    theme_combo = ttk.Combobox(
+        selector_container,
+        textvariable=theme_var,
+        values=list(DASHBOARD_THEMES.keys()),
+        state="readonly",
+        width=16
+    )
+    theme_combo.pack(side="left")
+
+    panels_container = ttk.Frame(home_frame, style=STYLE_NAMES["home"])
+    panels_container.pack(expand=True, fill="both")
+    panels_container.columnconfigure((0, 1), weight=1, uniform="panel")
+
+    patient_panel = ttk.Labelframe(
+        panels_container,
+        text="Patient Actions 🩺",
+        padding=18,
+        style=STYLE_NAMES["patient_panel"]
+    )
+    patient_panel.grid(row=0, column=0, padx=12, pady=12, sticky="nsew")
+
+    monitor_panel = ttk.Labelframe(
+        panels_container,
+        text="Vitals Monitor 💓",
+        padding=18,
+        style=STYLE_NAMES["monitor_panel"]
+    )
+    monitor_panel.grid(row=0, column=1, padx=12, pady=12, sticky="nsew")
+
+    report_panel = ttk.Labelframe(
+        panels_container,
+        text="Reports & Tools 📋",
+        padding=18,
+        style=STYLE_NAMES["report_panel"]
+    )
+    report_panel.grid(row=1, column=0, columnspan=2, padx=12, pady=(0, 12), sticky="nsew")
+
+    create_dashboard_button(
+        patient_panel,
+        "➕ Add New Patient",
+        lambda: gui_add_patient(patient_list),
+        style_role="primary"
+    )
+    create_dashboard_button(
+        patient_panel,
+        "📋 View Patients",
+        lambda: gui_view_patients(patient_list),
+        style_role="secondary"
+    )
+    create_dashboard_button(
+        patient_panel,
+        "🔍 Search Patient",
+        lambda: gui_search_patients(patient_list),
+        style_role="info"
+    )
+
+    create_dashboard_button(
+        monitor_panel,
+        "⚠️ Abnormal Summary",
+        lambda: gui_abnormal_summary(patient_list),
+        style_role="alert"
+    )
+    create_dashboard_button(
+        monitor_panel,
+        "🩺 Update Vitals",
+        lambda: gui_update_vitals(patient_list),
+        style_role="accent"
+    )
+    create_dashboard_button(
+        monitor_panel,
+        "📈 Vitals Trend Chart",
+        lambda: gui_plot_trend(patient_list),
+        style_role="insight"
+    )
+
+    create_dashboard_button(
+        report_panel,
+        "📤 Export Report",
+        lambda: export_report(patient_list),
+        style_role="success"
+    )
+    create_dashboard_button(
+        report_panel,
+        "❌ Exit",
+        root.destroy,
+        style_role="danger"
+    )
+
+    # Patient tab pastel panels
+    patient_tab.columnconfigure(0, weight=1)
+    patient_shortcuts = ttk.Labelframe(
+        patient_tab,
+        text="Daily Patient Shortcuts 🌼",
+        padding=20,
+        style=STYLE_NAMES["patient_panel"]
+    )
+    patient_shortcuts.pack(fill="x", pady=12)
+    ttk.Label(
+        patient_shortcuts,
+        text="Add, review, or search charts from this cuddly corner. Buttons match the pastel theme so workflows stay calm and quick.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=520,
+        justify="left"
+    ).pack(pady=(0, 12))
+    create_dashboard_button(
+        patient_shortcuts,
+        "➕ Register A New Patient",
+        lambda: gui_add_patient(patient_list),
+        style_role="primary"
+    )
+    create_dashboard_button(
+        patient_shortcuts,
+        "📋 Browse Patient List",
+        lambda: gui_view_patients(patient_list),
+        style_role="secondary"
+    )
+    create_dashboard_button(
+        patient_shortcuts,
+        "🔍 Search By ID",
+        lambda: gui_search_patients(patient_list),
+        style_role="info"
+    )
+
+    patient_notes = ttk.Labelframe(
+        patient_tab,
+        text="Team Notes & Reminders 📝",
+        padding=20,
+        style=STYLE_NAMES["report_panel"]
+    )
+    patient_notes.pack(fill="both", expand=True, pady=12)
+    ttk.Label(
+        patient_notes,
+        text="Use the abnormal summary or export tools to capture daily huddles. Keep vitals trends handy for bedside updates.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=540,
+        justify="left"
+    ).pack(pady=(0, 8))
+    create_dashboard_button(
+        patient_notes,
+        "⚠️ View Abnormal Summary",
+        lambda: gui_abnormal_summary(patient_list),
+        style_role="alert"
+    )
+    create_dashboard_button(
+        patient_notes,
+        "📈 Vitals Trend Chart",
+        lambda: gui_plot_trend(patient_list),
+        style_role="insight"
+    )
+
+    # Monitor tab panels
+    abnormal_tab.columnconfigure(0, weight=1)
+    vital_snapshot = ttk.Labelframe(
+        abnormal_tab,
+        text="Vitals Snapshot 💓",
+        padding=20,
+        style=STYLE_NAMES["monitor_panel"]
+    )
+    vital_snapshot.pack(fill="x", pady=12)
+    ttk.Label(
+        vital_snapshot,
+        text="Track live alerts and refresh vitals here. Use the quick buttons to acknowledge alerts or jump right into updates.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=520,
+        justify="left"
+    ).pack(pady=(0, 10))
+    create_dashboard_button(
+        vital_snapshot,
+        "🩺 Update Vitals",
+        lambda: gui_update_vitals(patient_list),
+        style_role="accent"
+    )
+    create_dashboard_button(
+        vital_snapshot,
+        "⚠️ Review Abnormal Metrics",
+        lambda: gui_abnormal_summary(patient_list),
+        style_role="alert"
+    )
+
+    monitor_reports = ttk.Labelframe(
+        abnormal_tab,
+        text="Monitoring Tools 📊",
+        padding=20,
+        style=STYLE_NAMES["report_panel"]
+    )
+    monitor_reports.pack(fill="both", expand=True, pady=12)
+    ttk.Label(
+        monitor_reports,
+        text="Need a printable log? Export a pastel report or pull up the full roster to double-check anyone on watch.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=540,
+        justify="left"
+    ).pack(pady=(0, 10))
+    create_dashboard_button(
+        monitor_reports,
+        "📤 Export Vitals Report",
+        lambda: export_report(patient_list),
+        style_role="success"
+    )
+    create_dashboard_button(
+        monitor_reports,
+        "📋 View Patient Table",
+        lambda: gui_view_patients(patient_list),
+        style_role="secondary"
+    )
+
+    # Export tab panels
+    export_tab.columnconfigure(0, weight=1)
+    export_guides = ttk.Labelframe(
+        export_tab,
+        text="Shareable Reports 🌸",
+        padding=20,
+        style=STYLE_NAMES["report_panel"]
+    )
+    export_guides.pack(fill="x", pady=12)
+    ttk.Label(
+        export_guides,
+        text="Generate gentle pastel CSVs for handoff, or pull abnormal summaries before rounds. Everything stays soft and friendly.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=520,
+        justify="left"
+    ).pack(pady=(0, 12))
+    create_dashboard_button(
+        export_guides,
+        "📄 Export Patient CSV",
+        lambda: export_report(patient_list),
+        style_role="success"
+    )
+    create_dashboard_button(
+        export_guides,
+        "⚠️ Abnormal Summary Snapshot",
+        lambda: gui_abnormal_summary(patient_list),
+        style_role="alert"
+    )
+
+    export_tools = ttk.Labelframe(
+        export_tab,
+        text="Reference Tools 🪄",
+        padding=20,
+        style=STYLE_NAMES["patient_panel"]
+    )
+    export_tools.pack(fill="both", expand=True, pady=12)
+    ttk.Label(
+        export_tools,
+        text="Use the vitals chart to visualize heart and blood pressure trends before attaching files to email or EMR notes.",
+        style=STYLE_NAMES["tab_body"],
+        wraplength=540,
+        justify="left"
+    ).pack(pady=(0, 10))
+    create_dashboard_button(
+        export_tools,
+        "📈 Open Vitals Trend",
+        lambda: gui_plot_trend(patient_list),
+        style_role="insight"
+    )
+    create_dashboard_button(
+        export_tools,
+        "❌ Close Dashboard",
+        root.destroy,
+        style_role="danger"
+    )
+
+    def on_theme_change(_event=None):
+        selected_theme = theme_var.get()
+        apply_dashboard_theme(style, root, selected_theme)
+        save_theme_choice(selected_theme)
+
+    theme_combo.bind("<<ComboboxSelected>>", on_theme_change)
+    on_theme_change()
 
     root.mainloop()
 

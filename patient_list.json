@@ -1,0 +1,11 @@
+{
+    "patient_id": "1",
+    "name": "bub",
+    "DOB": "09/02/2008",
+    "HR": "100",
+    "BP": "1",
+    "Temp": "99",
+    "CC": "no",
+    "Diagnosis": "yes",
+    "RN_AP": "/usr/local/bin/python3 \"/Users/victoriangannguyen/Downloads/Coding <3/smart_record.py/vitals.py\""
+}
