@@ -1,11 +1,12 @@
 {
-    "patient_id": "1",
-    "name": "bub",
-    "DOB": "09/02/2008",
-    "HR": "100",
-    "BP": "1",
-    "Temp": "99",
-    "CC": "no",
-    "Diagnosis": "yes",
-    "RN_AP": "/usr/local/bin/python3 \"/Users/victoriangannguyen/Downloads/Coding <3/smart_record.py/vitals.py\""
+    "patient_id": "001",
+    "name": "vic",
+    "DOB": "10/20/2005",
+    "HR": "98",
+    "BP": "170/90",
+    "Temp": "98",
+    "CC": "flu",
+    "Diagnosis": "flu",
+    "RN_AP": "VN",
+    "Time": "07:33 PM"
 }

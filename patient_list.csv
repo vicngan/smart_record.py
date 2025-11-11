@@ -1,2 +1,2 @@
-patient_id,name,DOB,HR,BP,Temp,CC,Diagnosis
-1,bub,09/02/2008,100,1,99,no,yes,"/usr/local/bin/python3 ""/Users/victoriangannguyen/Downloads/Coding <3/smart_record.py/vitals.py"""
+patient_id,name,DOB,HR,BP,Temp,CC,Diagnosis,RN_AP,Time
+001,vic,10/20/2005,98,170/90,98,flu,flu,VN,07:33 PM
