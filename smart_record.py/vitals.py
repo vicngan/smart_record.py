@@ -24,6 +24,7 @@ from patient_ops import (
     search_patient,
     update_vitals,
     view_patients,
+    priority_alerts,
 )
 from cli_app import run_cli
 from gui_app import (
@@ -37,6 +38,9 @@ from gui_app import (
 )
 from utils import RED, RESET, YELLOW, typeprint
 from tasks import load_tasks
+from timeline import load_timeline
+from soft_needs import load_soft_needs
+from patient_files import load_patient_files
 
 __all__ = [
     "CSV_FILE",
@@ -66,6 +70,7 @@ __all__ = [
     "plot_trend",
     "create_handoff_summary",
     "plot_abnormal_overview",
+    "priority_alerts",
     "run_cli",
     "launch_gui",
     "gui_add_patient",
@@ -80,4 +85,7 @@ __all__ = [
 if __name__ == "__main__":
     patient_list = load_from_csv()
     tasks = load_tasks()
-    launch_gui(patient_list, tasks)
+    timeline_entries = load_timeline()
+    soft_notes = load_soft_needs()
+    patient_files = load_patient_files()
+    launch_gui(patient_list, tasks, timeline_entries, soft_notes, patient_files)

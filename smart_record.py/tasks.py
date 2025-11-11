@@ -19,12 +19,13 @@ def save_tasks(tasks, filename: str = TASKS_FILE):
         json.dump(tasks, f, indent=2)
 
 
-def add_task(tasks, patient_id, description, due="", filename: str = TASKS_FILE):
+def add_task(tasks, patient_id, description, due="", priority="do soon", filename: str = TASKS_FILE):
     task = {
         "id": str(uuid.uuid4())[:8],
         "patient_id": patient_id,
         "description": description,
         "due": due,
+        "priority": priority,
         "status": "pending",
     }
     tasks.append(task)

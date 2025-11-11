@@ -9,4 +9,15 @@
     "Diagnosis": "flu",
     "RN_AP": "VN",
     "Time": "07:33 PM"
+}{
+    "patient_id": "002",
+    "name": "vicky",
+    "DOB": "10/20/2005",
+    "HR": "98",
+    "BP": "120/80",
+    "Temp": "98.0",
+    "CC": "cough",
+    "Diagnosis": "flu",
+    "RN_AP": "VN",
+    "Time": "08:24 PM"
 }

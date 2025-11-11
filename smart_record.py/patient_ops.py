@@ -4,7 +4,8 @@ from tkinter import messagebox
 import matplotlib.pyplot as plt
 
 from data_access import append_to_csv, save_to_json
-from utils import RED, RESET, typeprint
+from timeline import log_timeline
+from utils import RED, RESET, typeprint, normalize_bp, normalize_dob, normalize_temp
 
 
 def _is_abnormal_hr(hr, low=40, high=110):
@@ -31,9 +32,25 @@ def _is_abnormal_temp(temp, low=95.0, high=100.4):
     return temp_val < low or temp_val > high
 
 
-def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint="", diagnosis="", RN_AP=None):
+def add_patient(
+    patient_list,
+    patient_id,
+    name,
+    DOB,
+    HR,
+    BP,
+    Temp,
+    chief_complaint="",
+    diagnosis="",
+    RN_AP=None,
+    timeline_entries=None,
+):
     if RN_AP is None:
         RN_AP = input("Personel Initials: ")
+
+    DOB = normalize_dob(DOB)
+    BP = normalize_bp(BP)
+    Temp = normalize_temp(Temp)
 
     try:
         DOB_obj = datetime.strptime(DOB, "%m/%d/%Y")
@@ -59,6 +76,13 @@ def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complai
     patient_list.append(patient)
     append_to_csv(patient)
     save_to_json(patient)
+    if timeline_entries is not None:
+        log_timeline(
+            timeline_entries,
+            patient_id,
+            "New Patient",
+            f"{name} added with HR {HR} / BP {BP} / Temp {Temp}",
+        )
 
     typeprint("\nNew Patient Added Successfully! 🎀")
     view_patients(patient_list)
@@ -172,7 +196,7 @@ def export_report(patient_list, filename="report"):
         messagebox.showinfo("Export", f"Report saved as {filename}")
 
 
-def update_vitals(patient_list, patient_id):
+def update_vitals(patient_list, patient_id, timeline_entries=None):
     for patient in patient_list:
         if patient["patient_id"] == patient_id:
             typeprint("\nPatient Found! Go ahead and enter the updated vital!\n")
@@ -186,8 +210,8 @@ def update_vitals(patient_list, patient_id):
             new_time = datetime.now().strftime("%I:%M %p")
 
             patient["HR"] = new_HR
-            patient["BP"] = new_BP
-            patient["Temp"] = new_temp
+            patient["BP"] = normalize_bp(new_BP)
+            patient["Temp"] = normalize_temp(new_temp)
             patient["Time"] = new_time
             patient["Diagnosis"] = new_diag
             patient["RN_AP"] = new_RN_AP
@@ -198,6 +222,13 @@ def update_vitals(patient_list, patient_id):
                 f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}"
                 f"{patient['BP']:<12}{patient['Temp']:<8}{patient['CC']:<20}{patient['Diagnosis']:20}"
             )
+            if timeline_entries is not None:
+                log_timeline(
+                    timeline_entries,
+                    patient_id,
+                    "Vitals Update",
+                    f"HR {new_HR}, BP {new_BP}, Temp {new_temp}, Dx {new_diag}",
+                )
             return
     typeprint("\nNo patient found with that ID, try again!\n")
 
@@ -282,3 +313,41 @@ def plot_abnormal_overview(patient_list):
     plt.ylabel("Patient Count")
     plt.ylim(0, max(values + [1]) + 1)
     plt.show()
+
+
+def priority_alerts(patient_list):
+    alerts = []
+    for patient in patient_list:
+        severity = None
+        details = []
+        if _is_abnormal_hr(patient["HR"], low=45, high=130):
+            details.append(f"HR {patient['HR']}")
+            severity = "critical"
+        elif _is_abnormal_hr(patient["HR"]):
+            details.append(f"HR {patient['HR']}")
+            severity = severity or "warning"
+
+        if _is_abnormal_bp(patient["BP"], sys_low=85, sys_high=170, dias_low=45, dias_high=110):
+            details.append(f"BP {patient['BP']}")
+            severity = "critical"
+        elif _is_abnormal_bp(patient["BP"]):
+            details.append(f"BP {patient['BP']}")
+            severity = severity or "warning"
+
+        if _is_abnormal_temp(patient["Temp"], low=94.0, high=102.0):
+            details.append(f"Temp {patient['Temp']}")
+            severity = severity or "warning"
+        elif _is_abnormal_temp(patient["Temp"]):
+            details.append(f"Temp {patient['Temp']}")
+            severity = severity or "info"
+
+        if details:
+            alerts.append(
+                {
+                    "patient_id": patient["patient_id"],
+                    "name": patient["name"],
+                    "severity": severity or "info",
+                    "details": ", ".join(details),
+                }
+            )
+    return alerts
