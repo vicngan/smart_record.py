@@ -6,7 +6,15 @@ from tkinter import messagebox, simpledialog, StringVar, PhotoImage
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 
-from patient_ops import add_patient, export_report, plot_trend, update_vitals
+from patient_ops import (
+    add_patient,
+    create_handoff_summary,
+    export_report,
+    plot_abnormal_overview,
+    plot_trend,
+    update_vitals,
+)
+from tasks import add_task, delete_task, load_tasks, save_tasks, tasks_for_patient, toggle_task
 
 THEME_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "dashboard_theme.json")
 NOT_FOUND_LOGO = os.path.join(os.path.dirname(__file__), "app", "static", "not_found_logo.png")
@@ -450,7 +458,143 @@ def gui_plot_trend(patient_list):
         plot_trend(patient_list, patient_id)
 
 
-def launch_gui(patient_list):
+def gui_scan_barcode(patient_list):
+    scanned = simpledialog.askstring("Scan Barcode", "Scan or enter the patient barcode/ID:")
+    if not scanned:
+        return
+    scanned = scanned.strip()
+    patient = next((p for p in patient_list if p["patient_id"] == scanned), None)
+    if patient:
+        info = (
+            f"{patient['patient_id']} • {patient['name']}\n"
+            f"DOB: {patient['DOB']} | HR: {patient['HR']} | BP: {patient['BP']} | Temp: {patient['Temp']}\n"
+            f"Diagnosis: {patient.get('Diagnosis','')}"
+        )
+        messagebox.showinfo("Patient Found", info)
+    else:
+        show_not_found_popup("Not Found", "No patient matches that barcode/ID. Try scanning again.")
+
+
+def show_handoff_summary_popup(patient_list, tasks):
+    summary = create_handoff_summary(patient_list, tasks)
+    window = ttk.Toplevel()
+    window.title("Handoff Summary 🧾")
+    window.geometry("640x520")
+    window.grab_set()
+
+    container = ttk.Frame(window, padding=16, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    text_widget = tk.Text(container, wrap="word", font=("Helvetica", 12))
+    text_widget.insert("1.0", summary)
+    text_widget.configure(state="disabled")
+    text_widget.pack(fill="both", expand=True)
+
+    ttk.Button(container, text="Close", command=window.destroy, style=BUTTON_STYLE_NAMES["secondary"]).pack(pady=10)
+
+
+def open_task_center(patient_list, tasks):
+    window = ttk.Toplevel()
+    window.title("Task & Reminder Center ✅")
+    window.geometry("720x520")
+    window.grab_set()
+
+    container = ttk.Frame(window, padding=16, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    columns = ("id", "patient", "description", "due", "status")
+    tree = ttk.Treeview(container, columns=columns, show="headings", height=12)
+    for col in columns:
+        width = 80 if col == "id" else 140
+        tree.heading(col, text=col.title())
+        tree.column(col, width=width, anchor="center")
+    tree.pack(fill="both", expand=True, pady=(0, 12))
+
+    def resolve_name(patient_id):
+        patient = next((p for p in patient_list if p["patient_id"] == patient_id), None)
+        return f"{patient_id} - {patient['name']}" if patient else patient_id
+
+    def refresh_tree():
+        for row in tree.get_children():
+            tree.delete(row)
+        for task in tasks:
+            tree.insert(
+                "",
+                "end",
+                values=(
+                    task["id"],
+                    resolve_name(task["patient_id"]),
+                    task["description"],
+                    task.get("due", ""),
+                    task.get("status", "pending"),
+                ),
+            )
+
+    form_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+    form_frame.pack(fill="x", pady=8)
+
+    ttk.Label(form_frame, text="Patient ID", style=STYLE_NAMES["tab_body"]).grid(row=0, column=0, sticky="w")
+    patient_var = StringVar()
+    ttk.Entry(form_frame, textvariable=patient_var).grid(row=1, column=0, sticky="ew", padx=(0, 8))
+
+    ttk.Label(form_frame, text="Task Description", style=STYLE_NAMES["tab_body"]).grid(row=0, column=1, sticky="w")
+    desc_var = StringVar()
+    ttk.Entry(form_frame, textvariable=desc_var).grid(row=1, column=1, sticky="ew", padx=(0, 8))
+
+    ttk.Label(form_frame, text="Due Time (optional)", style=STYLE_NAMES["tab_body"]).grid(row=0, column=2, sticky="w")
+    due_var = StringVar()
+    ttk.Entry(form_frame, textvariable=due_var).grid(row=1, column=2, sticky="ew")
+
+    form_frame.columnconfigure((0, 1, 2), weight=1)
+
+    def add_task_action():
+        patient_id = patient_var.get().strip()
+        description = desc_var.get().strip()
+        if not patient_id or not description:
+            messagebox.showerror("Missing data", "Please enter both patient ID and description.")
+            return
+        if not any(p["patient_id"] == patient_id for p in patient_list):
+            messagebox.showerror("Unknown Patient", "That patient ID does not exist yet.")
+            return
+        add_task(tasks, patient_id, description, due_var.get().strip())
+        refresh_tree()
+        patient_var.set("")
+        desc_var.set("")
+        due_var.set("")
+
+    def toggle_selected():
+        selection = tree.selection()
+        if not selection:
+            return
+        task_id = tree.item(selection[0], "values")[0]
+        toggle_task(tasks, task_id)
+        refresh_tree()
+
+    def delete_selected():
+        selection = tree.selection()
+        if not selection:
+            return
+        task_id = tree.item(selection[0], "values")[0]
+        delete_task(tasks, task_id)
+        refresh_tree()
+
+    button_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+    button_frame.pack(fill="x", pady=4)
+    ttk.Button(button_frame, text="Add Task", command=add_task_action, style=BUTTON_STYLE_NAMES["primary"]).pack(
+        side="left", padx=4
+    )
+    ttk.Button(button_frame, text="Toggle Done", command=toggle_selected, style=BUTTON_STYLE_NAMES["accent"]).pack(
+        side="left", padx=4
+    )
+    ttk.Button(button_frame, text="Delete Task", command=delete_selected, style=BUTTON_STYLE_NAMES["danger"]).pack(
+        side="left", padx=4
+    )
+
+    refresh_tree()
+
+
+def launch_gui(patient_list, tasks=None):
+    tasks = tasks or []
     default_theme = "Pastel Blush"
     active_theme = load_saved_theme(default_theme)
     root = ttk.Window(title="✨ Smart Record App ✨", themename=DASHBOARD_THEMES[active_theme]["base_theme"])
@@ -528,6 +672,7 @@ def launch_gui(patient_list):
     create_dashboard_button(patient_panel, "➕ Add New Patient", lambda: gui_add_patient(patient_list), style_role="primary")
     create_dashboard_button(patient_panel, "📋 View Patients", lambda: gui_view_patients(patient_list), style_role="secondary")
     create_dashboard_button(patient_panel, "🔍 Search Patient", lambda: gui_search_patients(patient_list), style_role="info")
+    create_dashboard_button(patient_panel, "🧾 Scan Barcode/ID", lambda: gui_scan_barcode(patient_list), style_role="accent")
 
     create_dashboard_button(
         monitor_panel, "⚠️ Abnormal Summary", lambda: gui_abnormal_summary(patient_list), style_role="alert"
@@ -536,9 +681,18 @@ def launch_gui(patient_list):
     create_dashboard_button(
         monitor_panel, "📈 Vitals Trend Chart", lambda: gui_plot_trend(patient_list), style_role="insight"
     )
+    create_dashboard_button(
+        monitor_panel, "📊 Abnormal Vitals Chart", lambda: plot_abnormal_overview(patient_list), style_role="info"
+    )
 
     create_dashboard_button(
         report_panel, "📤 Export Report", lambda: export_report(patient_list), style_role="success"
+    )
+    create_dashboard_button(
+        report_panel, "🧾 Handoff Summary", lambda: show_handoff_summary_popup(patient_list, tasks), style_role="info"
+    )
+    create_dashboard_button(
+        report_panel, "✅ Task Reminders", lambda: open_task_center(patient_list, tasks), style_role="accent"
     )
     create_dashboard_button(report_panel, "❌ Exit", root.destroy, style_role="danger")
 

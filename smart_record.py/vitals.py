@@ -18,6 +18,8 @@ from patient_ops import (
     export_report,
     get_abnormal_BP,
     get_abnormal_HR,
+    create_handoff_summary,
+    plot_abnormal_overview,
     plot_trend,
     search_patient,
     update_vitals,
@@ -34,6 +36,7 @@ from gui_app import (
     launch_gui,
 )
 from utils import RED, RESET, YELLOW, typeprint
+from tasks import load_tasks
 
 __all__ = [
     "CSV_FILE",
@@ -61,6 +64,8 @@ __all__ = [
     "export_report",
     "update_vitals",
     "plot_trend",
+    "create_handoff_summary",
+    "plot_abnormal_overview",
     "run_cli",
     "launch_gui",
     "gui_add_patient",
@@ -74,4 +79,5 @@ __all__ = [
 
 if __name__ == "__main__":
     patient_list = load_from_csv()
-    launch_gui(patient_list)
+    tasks = load_tasks()
+    launch_gui(patient_list, tasks)

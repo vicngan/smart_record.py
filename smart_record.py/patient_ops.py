@@ -7,6 +7,30 @@ from data_access import append_to_csv, save_to_json
 from utils import RED, RESET, typeprint
 
 
+def _is_abnormal_hr(hr, low=40, high=110):
+    try:
+        hr_val = int(hr)
+    except (ValueError, TypeError):
+        return False
+    return hr_val < low or hr_val > high
+
+
+def _is_abnormal_bp(bp, sys_low=90, sys_high=150, dias_low=50, dias_high=100):
+    try:
+        systolic, diastolic = map(int, bp.split("/"))
+    except (ValueError, AttributeError):
+        return False
+    return systolic < sys_low or systolic > sys_high or diastolic < dias_low or diastolic > dias_high
+
+
+def _is_abnormal_temp(temp, low=95.0, high=100.4):
+    try:
+        temp_val = float(temp)
+    except (ValueError, TypeError):
+        return False
+    return temp_val < low or temp_val > high
+
+
 def add_patient(patient_list, patient_id, name, DOB, HR, BP, Temp, chief_complaint="", diagnosis="", RN_AP=None):
     if RN_AP is None:
         RN_AP = input("Personel Initials: ")
@@ -207,4 +231,54 @@ def plot_trend(patient_list, patient_id):
     plt.ylabel("Vitals")
     plt.title(f"Vitals Trend for Patient {patient_id}")
     plt.legend()
+    plt.show()
+
+
+def create_handoff_summary(patient_list, tasks=None):
+    if not patient_list:
+        return "No patients recorded yet."
+
+    task_lookup = {}
+    if tasks:
+        for task in tasks:
+            if task.get("status") == "done":
+                continue
+            task_lookup.setdefault(task["patient_id"], []).append(task)
+
+    lines = []
+    lines.append("Smart Record Handoff Summary")
+    lines.append("-" * 32)
+    for patient in patient_list:
+        hr_status = "⚠️" if _is_abnormal_hr(patient["HR"]) else "✅"
+        bp_status = "⚠️" if _is_abnormal_bp(patient["BP"]) else "✅"
+        temp_status = "⚠️" if _is_abnormal_temp(patient["Temp"]) else "✅"
+        outstanding = len(task_lookup.get(patient["patient_id"], []))
+        lines.append(
+            f"{patient['patient_id']} • {patient['name']} ({patient['DOB']})\n"
+            f"   HR {patient['HR']} {hr_status} | BP {patient['BP']} {bp_status} | Temp {patient['Temp']} {temp_status}\n"
+            f"   Dx: {patient.get('Diagnosis','-')} • Tasks: {outstanding} open"
+        )
+    return "\n".join(lines)
+
+
+def plot_abnormal_overview(patient_list):
+    if not patient_list:
+        messagebox.showinfo("Info", "No patient records to chart yet.")
+        return
+
+    hr_count = sum(1 for p in patient_list if _is_abnormal_hr(p["HR"]))
+    bp_count = sum(1 for p in patient_list if _is_abnormal_bp(p["BP"]))
+    temp_count = sum(1 for p in patient_list if _is_abnormal_temp(p["Temp"]))
+
+    labels = ["Heart Rate", "Blood Pressure", "Temperature"]
+    values = [hr_count, bp_count, temp_count]
+    colors = ["#f48fb1", "#f6bd60", "#9cc5c9"]
+
+    plt.figure(figsize=(6, 4))
+    bars = plt.bar(labels, values, color=colors)
+    for bar, value in zip(bars, values):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.1, str(value), ha="center", va="bottom")
+    plt.title("Abnormal Vitals Overview")
+    plt.ylabel("Patient Count")
+    plt.ylim(0, max(values + [1]) + 1)
     plt.show()
