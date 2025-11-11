@@ -16,8 +16,10 @@ from patient_ops import (
 )
 from tasks import add_task, delete_task, load_tasks, save_tasks, tasks_for_patient, toggle_task
 
-THEME_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "dashboard_theme.json")
-NOT_FOUND_LOGO = os.path.join(os.path.dirname(__file__), "app", "static", "not_found_logo.png")
+BASE_DIR = os.path.dirname(__file__)
+THEME_CONFIG_PATH = os.path.join(BASE_DIR, "dashboard_theme.json")
+NOT_FOUND_LOGO = os.path.join(BASE_DIR, "app", "static", "not_found_logo.png")
+APP_LOGO = os.path.join(BASE_DIR, "app", "static", "app_logo.png")
 
 DASHBOARD_THEMES = {
     "Pastel Blush": {
@@ -109,6 +111,7 @@ BUTTON_STYLE_NAMES = {
 }
 
 _NOT_FOUND_LOGO_IMAGE = None
+_APP_LOGO_IMAGE = None
 
 
 def get_not_found_logo_image():
@@ -119,6 +122,16 @@ def get_not_found_logo_image():
         except Exception:
             _NOT_FOUND_LOGO_IMAGE = None
     return _NOT_FOUND_LOGO_IMAGE
+
+
+def get_app_logo_image():
+    global _APP_LOGO_IMAGE
+    if _APP_LOGO_IMAGE is None and os.path.exists(APP_LOGO):
+        try:
+            _APP_LOGO_IMAGE = PhotoImage(file=APP_LOGO)
+        except Exception:
+            _APP_LOGO_IMAGE = None
+    return _APP_LOGO_IMAGE
 
 
 def show_not_found_popup(title, message):
@@ -602,6 +615,10 @@ def launch_gui(patient_list, tasks=None):
 
     style = ttk.Style()
     apply_dashboard_theme(style, root, active_theme)
+    app_logo = get_app_logo_image()
+    if app_logo:
+        root.iconphoto(False, app_logo)
+        root._app_logo = app_logo  # keep reference
 
     notebook = ttk.Notebook(root)
     notebook.pack(expand=True, fill="both", padx=16, pady=16)
@@ -620,7 +637,11 @@ def launch_gui(patient_list, tasks=None):
     banner.pack(fill="x", pady=(0, 25))
     banner.columnconfigure(0, weight=1)
 
-    ttk.Label(banner, text="Smart Record Nurse Station", style=STYLE_NAMES["banner_title"]).grid(row=0, column=0, sticky="w")
+    title_row = ttk.Frame(banner, style=STYLE_NAMES["banner"])
+    title_row.grid(row=0, column=0, sticky="w")
+    if app_logo:
+        ttk.Label(title_row, image=app_logo).pack(side="left", padx=(0, 12))
+    ttk.Label(title_row, text="Smart Record Nurse Station", style=STYLE_NAMES["banner_title"]).pack(side="left")
     ttk.Label(
         banner,
         text="Soft pastels, quick actions, and gentle alerts for calmer charting 💖",
