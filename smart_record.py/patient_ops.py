@@ -1,5 +1,7 @@
 from datetime import datetime
 import csv
+import os
+import json
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 
@@ -30,6 +32,39 @@ def _is_abnormal_temp(temp, low=95.0, high=100.4):
     except (ValueError, TypeError):
         return False
     return temp_val < low or temp_val > high
+
+
+def _history_dir():
+    path = os.path.join(os.path.dirname(__file__), "patient_history")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def load_history(patient_id):
+    history_file = os.path.join(_history_dir(), f"{patient_id}.json")
+    if os.path.isfile(history_file):
+        with open(history_file, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return []
+    return []
+
+
+def append_history(patient):
+    history = load_history(patient["patient_id"])
+    history.append(
+        {
+            "Time": patient.get("Time"),
+            "HR": patient.get("HR"),
+            "BP": patient.get("BP"),
+            "Temp": patient.get("Temp"),
+            "Diagnosis": patient.get("Diagnosis"),
+        }
+    )
+    history_file = os.path.join(_history_dir(), f"{patient['patient_id']}.json")
+    with open(history_file, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
 
 
 def add_patient(
@@ -75,7 +110,9 @@ def add_patient(
 
     patient_list.append(patient)
     append_to_csv(patient)
+    append_history(patient)
     save_to_json(patient)
+    append_history(patient)
     if timeline_entries is not None:
         log_timeline(
             timeline_entries,
@@ -196,41 +233,40 @@ def export_report(patient_list, filename="report"):
         messagebox.showinfo("Export", f"Report saved as {filename}")
 
 
-def update_vitals(patient_list, patient_id, timeline_entries=None):
-    for patient in patient_list:
-        if patient["patient_id"] == patient_id:
-            typeprint("\nPatient Found! Go ahead and enter the updated vital!\n")
+def update_vitals(patient_list, patient_id, updates, timeline_entries=None):
+    patient = next((p for p in patient_list if p["patient_id"] == patient_id), None)
+    if not patient:
+        typeprint("\nNo patient found with that ID, try again!\n")
+        return False
 
-            new_HR = input("Updated Heart Rate: ")
-            new_BP = input("Updated Blood Pressure: ")
-            new_temp = input("Updated Temperature: ")
-            new_diag = input("Updated Diagnosis: ")
-            new_RN_AP = input("Personel Initials: ")
+    new_time = datetime.now().strftime("%I:%M %p")
+    hr = updates.get("HR") or patient["HR"]
+    bp = normalize_bp(updates.get("BP") or patient["BP"])
+    temp = normalize_temp(updates.get("Temp") or patient["Temp"])
+    diagnosis = updates.get("Diagnosis") or patient.get("Diagnosis", "")
+    rn = updates.get("RN_AP") or patient.get("RN_AP", "")
 
-            new_time = datetime.now().strftime("%I:%M %p")
+    patient["HR"] = hr
+    patient["BP"] = bp
+    patient["Temp"] = temp
+    patient["Time"] = new_time
+    patient["Diagnosis"] = diagnosis
+    patient["RN_AP"] = rn
 
-            patient["HR"] = new_HR
-            patient["BP"] = normalize_bp(new_BP)
-            patient["Temp"] = normalize_temp(new_temp)
-            patient["Time"] = new_time
-            patient["Diagnosis"] = new_diag
-            patient["RN_AP"] = new_RN_AP
-
-            append_to_csv(patient)
-            typeprint("\nVitals updated successfully :D\n")
-            typeprint(
-                f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}"
-                f"{patient['BP']:<12}{patient['Temp']:<8}{patient['CC']:<20}{patient['Diagnosis']:20}"
-            )
-            if timeline_entries is not None:
-                log_timeline(
-                    timeline_entries,
-                    patient_id,
-                    "Vitals Update",
-                    f"HR {new_HR}, BP {new_BP}, Temp {new_temp}, Dx {new_diag}",
-                )
-            return
-    typeprint("\nNo patient found with that ID, try again!\n")
+    append_to_csv(patient)
+    typeprint("\nVitals updated successfully :D\n")
+    typeprint(
+        f"{patient['patient_id']:<8}{patient['name']:<12}{patient['DOB']:<15}{patient['HR']:<8}"
+        f"{patient['BP']:<12}{patient['Temp']:<8}{patient['CC']:<20}{patient['Diagnosis']:20}"
+    )
+    if timeline_entries is not None:
+        log_timeline(
+            timeline_entries,
+            patient_id,
+            "Vitals Update",
+            f"HR {hr}, BP {bp}, Temp {temp}, Dx {diagnosis}",
+        )
+    return True
 
 
 def plot_trend(patient_list, patient_id):
@@ -239,8 +275,11 @@ def plot_trend(patient_list, patient_id):
         messagebox.showerror("Error!", "Patient not found, Try Again!")
         return
 
+    history = load_history(patient_id)
+    all_records = history if history else patient_data
+
     cleaned_points = []
-    for idx, record in enumerate(patient_data, start=1):
+    for idx, record in enumerate(all_records, start=1):
         label = record.get("Time") or f"Entry {idx}"
         try:
             hr_value = int(record["HR"])

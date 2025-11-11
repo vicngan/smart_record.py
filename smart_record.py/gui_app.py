@@ -37,7 +37,7 @@ from patient_files import (
 BASE_DIR = os.path.dirname(__file__)
 THEME_CONFIG_PATH = os.path.join(BASE_DIR, "dashboard_theme.json")
 NOT_FOUND_LOGO = os.path.join(BASE_DIR, "app", "static", "not_found_logo.png")
-APP_LOGO = os.path.join(BASE_DIR, "app", "static", "heartline_logo.png")
+APP_LOGO = os.path.join(BASE_DIR, "app", "static", "heartline_icon.png")
 
 DASHBOARD_THEMES = {
     "Pastel Blush": {
@@ -122,6 +122,27 @@ DASHBOARD_THEMES = {
             "insight": {"bg": "#cba0d8", "hover": "#b484c6", "fg": "#190c20", "border": "#b484c6"},
             "success": {"bg": "#6bc28b", "hover": "#58ab75", "fg": "#09170e", "border": "#58ab75"},
             "danger": {"bg": "#f38a93", "hover": "#d96d77", "fg": "#28090c", "border": "#d96d77"},
+        },
+    },
+    "Blossom Minimal": {
+        "base_theme": "journal",
+        "background": "#fefefd",
+        "banner": {"bg": "#f9f6f1", "fg": "#6f6a5d", "sub_fg": "#9a9487"},
+        "panels": {
+            "patient": {"bg": "#ffffff", "label_bg": "#f6f3ef", "label_fg": "#6f6a5d", "border": "#e4dfd6"},
+            "monitor": {"bg": "#ffffff", "label_bg": "#f4f1ed", "label_fg": "#6f6a5d", "border": "#ded8ce"},
+            "report": {"bg": "#ffffff", "label_bg": "#f6f1ec", "label_fg": "#6f6a5d", "border": "#e4dcd0"},
+        },
+        "text": {"primary": "#5f5a4f", "muted": "#9a9487"},
+        "buttons": {
+            "primary": {"bg": "#f6b7c6", "hover": "#f2a1b4", "fg": "#59303c", "border": "#f2a1b4"},
+            "secondary": {"bg": "#ebe7de", "hover": "#dfd9ce", "fg": "#605a4f", "border": "#dfd9ce"},
+            "info": {"bg": "#d6e8f2", "hover": "#bfd9e8", "fg": "#2b4856", "border": "#bfd9e8"},
+            "alert": {"bg": "#ffd9b8", "hover": "#ffc89a", "fg": "#5e3c24", "border": "#ffc89a"},
+            "accent": {"bg": "#e2efd8", "hover": "#cfe4c2", "fg": "#304929", "border": "#cfe4c2"},
+            "insight": {"bg": "#f0def2", "hover": "#e3c7e8", "fg": "#463457", "border": "#e3c7e8"},
+            "success": {"bg": "#d0eadf", "hover": "#bbdece", "fg": "#224235", "border": "#bbdece"},
+            "danger": {"bg": "#f7c3c3", "hover": "#f3aaaa", "fg": "#5a2a2a", "border": "#f3aaaa"},
         },
     },
 }
@@ -514,9 +535,52 @@ def gui_abnormal_summary(patient_list):
 
 
 def gui_update_vitals(patient_list, timeline_entries=None):
-    update_id = simpledialog.askstring("Update", "Please enter new updates: ")
-    if update_id:
-        update_vitals(patient_list, update_id, timeline_entries=timeline_entries)
+    update_id = simpledialog.askstring("Update Vitals", "Patient ID to update:")
+    if not update_id:
+        return
+    patient = next((p for p in patient_list if p["patient_id"] == update_id), None)
+    if not patient:
+        show_not_found_popup("Not Found", "No patient matches that ID.")
+        return
+
+    form = ttk.Toplevel()
+    form.title(f"Update Vitals • {patient['name']}")
+    form.geometry("460x600")
+    form.grab_set()
+
+    container = ttk.Frame(form, padding=24, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    ttk.Label(container, text="Update only what changed; leave blank to keep current values.", style=STYLE_NAMES["tab_body"]).pack(anchor="w", pady=(0, 12))
+
+    field_definitions = [
+        ("Heart Rate", "HR", patient["HR"]),
+        ("Blood Pressure (e.g. 120/80)", "BP", patient["BP"]),
+        ("Temperature", "Temp", patient["Temp"]),
+        ("Diagnosis", "Diagnosis", patient.get("Diagnosis", "")),
+        ("Personnel Initials", "RN_AP", patient.get("RN_AP", "")),
+    ]
+
+    vars_map = {}
+    for label_text, key, value in field_definitions:
+        frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+        frame.pack(fill="x", pady=6)
+        ttk.Label(frame, text=f"{label_text} (Current: {value})", style=STYLE_NAMES["tab_body"]).pack(anchor="w")
+        var = StringVar()
+        ttk.Entry(frame, textvariable=var).pack(fill="x", pady=(4, 0))
+        vars_map[key] = var
+
+    def submit():
+        updates = {k: v.get().strip() for k, v in vars_map.items() if v.get().strip()}
+        if not updates:
+            messagebox.showinfo("No Changes", "You didn't enter any updates.")
+            return
+        success = update_vitals(patient_list, update_id, updates, timeline_entries=timeline_entries)
+        if success:
+            form.destroy()
+
+    ttk.Button(container, text="Save Updates", command=submit, style=BUTTON_STYLE_NAMES["success"]).pack(fill="x", pady=(12, 0))
+    ttk.Button(container, text="Cancel", command=form.destroy, style=BUTTON_STYLE_NAMES["secondary"]).pack(fill="x", pady=(8, 0))
 
 
 def gui_plot_trend(patient_list):
@@ -1043,30 +1107,50 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
         style=STYLE_NAMES["patient_panel"],
     )
     quick_frame.pack(fill="x", pady=(12, 0))
-    quick_tree = tk.Canvas(quick_frame, height=140, highlightthickness=0, bg="#fffef9")
-    quick_tree.pack(fill="x")
-    headers = [("ID", 0.05), ("Name", 0.35), ("Dx", 0.7)]
-    width = quick_tree.winfo_reqwidth()
-    def draw_table(event=None):
-        quick_tree.delete("all")
-        w = quick_tree.winfo_width()
-        h = quick_tree.winfo_height()
-        row_height = h // 4
-        for i in range(5):
+    quick_canvas = tk.Canvas(quick_frame, height=140, highlightthickness=0, bg="#fffef9")
+    quick_canvas.pack(fill="x")
+    headers = ["ID", "Name", "Diagnosis", "HR", "BP"]
+
+    def redraw_quick(event=None):
+        quick_canvas.delete("all")
+        w = quick_canvas.winfo_width()
+        h = quick_canvas.winfo_height()
+        row_height = h // 5
+        col_positions = [0, w * 0.1, w * 0.4, w * 0.6, w * 0.78, w]
+
+        for i in range(6):
             y = i * row_height
-            quick_tree.create_line(0, y, w, y, fill="#edd6e3")
-        for text, relx in headers:
-            x = int(w * relx)
-            quick_tree.create_line(x, 0, x, h, fill="#edd6e3")
-            quick_tree.create_text(x + 10, 10, anchor="nw", text=text, fill="#8b6f79", font=("Helvetica", 11, "bold"))
-        for idx, p in enumerate(patient_list[:4]):
-            y = idx * row_height + 28
-            quick_tree.create_text(12, y, anchor="nw", text=p["patient_id"], font=("Helvetica", 12))
-            quick_tree.create_text(int(w * 0.05) + 12, y, anchor="nw", text=p["name"], font=("Helvetica", 12))
-            quick_tree.create_text(int(w * 0.35) + 12, y, anchor="nw", text=p.get("Diagnosis", ""), font=("Helvetica", 12))
-    quick_tree.bind("<Configure>", draw_table)
-    for p in patient_list[:6]:
-        quick_tree.insert("", "end", values=(p["patient_id"], p["name"], p.get("Diagnosis", "")))
+            quick_canvas.create_line(0, y, w, y, fill="#eed8e4")
+        for x in col_positions:
+            quick_canvas.create_line(x, 0, x, h, fill="#eed8e4")
+
+        for idx, title in enumerate(headers):
+            quick_canvas.create_text(
+                (col_positions[idx] + col_positions[idx + 1]) / 2,
+                10,
+                text=title,
+                fill="#8b6f79",
+                font=("Helvetica", 11, "bold"),
+            )
+
+        for row, patient in enumerate(patient_list[:5]):
+            y = (row + 1) * row_height + 10
+            values = [
+                patient["patient_id"],
+                patient["name"],
+                patient.get("Diagnosis", ""),
+                patient["HR"],
+                patient["BP"],
+            ]
+            for idx, value in enumerate(values):
+                quick_canvas.create_text(
+                    (col_positions[idx] + col_positions[idx + 1]) / 2,
+                    y,
+                    text=value,
+                    font=("Helvetica", 11),
+                )
+
+    quick_canvas.bind("<Configure>", redraw_quick)
 
     panels_container = ttk.Frame(home_frame, style=STYLE_NAMES["home"])
     panels_container.pack(expand=True, fill="both", pady=(12, 0))
@@ -1150,28 +1234,20 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
 
     refresh_alerts()
 
-    create_dashboard_button(
-        report_panel, "📤 Export Report", lambda: export_report(patient_list), style_role="success"
-    )
-    create_dashboard_button(
-        report_panel, "🧾 Handoff Summary", lambda: show_handoff_summary_popup(patient_list, tasks), style_role="info"
-    )
-    create_dashboard_button(
-        report_panel, "✅ Task Reminders", lambda: open_task_center(patient_list, tasks), style_role="accent"
-    )
-    create_dashboard_button(
-        report_panel,
-        "🪄 SBAR Cards",
-        lambda: open_sbar_cards(patient_list, soft_notes),
-        style_role="info",
-    )
-    create_dashboard_button(
-        report_panel,
-        "🌸 Soft Needs Notes",
-        lambda: open_soft_needs_center(patient_list, soft_notes),
-        style_role="secondary",
-    )
-    create_dashboard_button(report_panel, "❌ Exit", root.destroy, style_role="danger")
+    report_actions = [
+        ("📤 Export Report", lambda: export_report(patient_list), "success"),
+        ("🧾 Handoff Summary", lambda: show_handoff_summary_popup(patient_list, tasks), "info"),
+        ("✅ Task Reminders", lambda: open_task_center(patient_list, tasks), "accent"),
+        ("🪄 SBAR Cards", lambda: open_sbar_cards(patient_list, soft_notes), "info"),
+        ("🌸 Soft Needs Notes", lambda: open_soft_needs_center(patient_list, soft_notes), "secondary"),
+        ("❌ Exit", root.destroy, "danger"),
+    ]
+    for i in range(0, len(report_actions), 2):
+        row = ttk.Frame(report_panel, style=STYLE_NAMES["report_panel"])
+        row.pack(fill="x", pady=4)
+        for text, command, style_role in report_actions[i : i + 2]:
+            btn = ttk.Button(row, text=text, command=command, style=BUTTON_STYLE_NAMES[style_role])
+            btn.pack(side="left", fill="x", expand=True, padx=4)
 
     def build_patient_tab():
         patient_tab.columnconfigure(0, weight=1)

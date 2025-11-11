@@ -4,5 +4,11 @@
     "patient_id": "002",
     "event": "New Patient",
     "description": "vicky added with HR 98 / BP 120/80 / Temp 98.0"
+  },
+  {
+    "timestamp": "2025-11-10 20:52",
+    "patient_id": "001",
+    "event": "Vitals Update",
+    "description": "HR 100, BP 150/75, Temp 98.0, Dx flu"
   }
 ]
