@@ -12,6 +12,7 @@ except ImportError:
 
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import matplotlib.pyplot as plt
 
 from patient_ops import (
     add_patient,
@@ -33,6 +34,9 @@ from patient_files import (
     set_discharge_status,
     set_photo,
 )
+from medications import load_medications, save_medications, add_medication, toggle_med
+from team_chat import load_messages, add_message
+from sqlite_cache import snapshot_patients
 
 BASE_DIR = os.path.dirname(__file__)
 THEME_CONFIG_PATH = os.path.join(BASE_DIR, "dashboard_theme.json")
@@ -903,6 +907,190 @@ def open_soft_needs_center(patient_list, soft_notes):
     refresh()
 
 
+def open_med_tracker(patient_list, medications):
+    pid = simpledialog.askstring("Med Tracker", "Enter Patient ID:")
+    if not pid:
+        return
+    patient = next((p for p in patient_list if p["patient_id"] == pid), None)
+    if not patient:
+        show_not_found_popup("Not Found", "No patient matches that ID.")
+        return
+
+    window = ttk.Toplevel()
+    window.title(f"Med Tracker • {patient['name']}")
+    window.geometry("720x520")
+    window.grab_set()
+
+    meds = medications.setdefault(pid, [])
+
+    container = ttk.Frame(window, padding=16, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    tree = ttk.Treeview(container, columns=("name", "dose", "schedule", "priority", "status"), show="headings", height=12)
+    for col in ("name", "dose", "schedule", "priority", "status"):
+        tree.heading(col, text=col.title())
+        tree.column(col, anchor="center", width=120)
+    tree.pack(fill="both", expand=True)
+
+    def refresh_tree():
+        for row in tree.get_children():
+            tree.delete(row)
+        for idx, med in enumerate(meds):
+            tree.insert(
+                "",
+                "end",
+                iid=str(idx),
+                values=(
+                    med["name"],
+                    med["dose"],
+                    med["schedule"],
+                    med.get("priority", "do soon"),
+                    "Given" if med.get("given") else "Pending",
+                ),
+            )
+
+    def add_med():
+        name = simpledialog.askstring("Medication", "Name:")
+        if not name:
+            return
+        dose = simpledialog.askstring("Medication", "Dose:")
+        schedule = simpledialog.askstring("Medication", "Schedule:")
+        priority = simpledialog.askstring("Medication", "Priority (do now/do soon/can wait):", initialvalue="do soon")
+        add_medication(medications, pid, name, dose or "", schedule or "", priority or "do soon")
+        refresh_tree()
+
+    def toggle_selected():
+        selection = tree.selection()
+        if not selection:
+            return
+        idx = int(selection[0])
+        toggle_med(medications, pid, idx)
+        refresh_tree()
+
+    btn_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+    btn_frame.pack(fill="x", pady=6)
+    ttk.Button(btn_frame, text="Add Medication", command=add_med, style=BUTTON_STYLE_NAMES["primary"]).pack(side="left", padx=4)
+    ttk.Button(btn_frame, text="Toggle Given", command=toggle_selected, style=BUTTON_STYLE_NAMES["accent"]).pack(
+        side="left", padx=4
+    )
+    ttk.Button(btn_frame, text="Close", command=window.destroy, style=BUTTON_STYLE_NAMES["secondary"]).pack(side="right")
+    refresh_tree()
+
+
+def open_team_comm(team_messages, role_var):
+    window = ttk.Toplevel()
+    window.title("Team Communication 💬")
+    window.geometry("640x540")
+    window.grab_set()
+
+    container = ttk.Frame(window, padding=16, style=STYLE_NAMES["home"])
+    container.pack(fill="both", expand=True)
+
+    columns = ("timestamp", "author", "role", "text")
+    tree = ttk.Treeview(container, columns=columns, show="headings", height=14)
+    for col, width in zip(columns, (120, 120, 80, 220)):
+        tree.heading(col, text=col.title())
+        tree.column(col, width=width, anchor="w")
+    tree.pack(fill="both", expand=True, pady=(0, 10))
+
+    def refresh():
+        for row in tree.get_children():
+            tree.delete(row)
+        for msg in team_messages[-100:]:
+            tree.insert("", "end", values=(msg["timestamp"], msg["author"], msg["role"], msg["text"]))
+
+    entry_frame = ttk.Frame(container, style=STYLE_NAMES["home"])
+    entry_frame.pack(fill="x")
+    author_var = StringVar()
+    ttk.Entry(entry_frame, textvariable=author_var, placeholder="Your name").grid(row=0, column=0, sticky="ew", padx=(0, 8))
+    msg_var = StringVar()
+    ttk.Entry(entry_frame, textvariable=msg_var).grid(row=0, column=1, sticky="ew")
+    entry_frame.columnconfigure((0, 1), weight=1)
+
+    def send():
+        author = author_var.get().strip() or "Someone"
+        text = msg_var.get().strip()
+        if not text:
+            return
+        add_message(team_messages, author, role_var.get(), text)
+        author_var.set("")
+        msg_var.set("")
+        refresh()
+
+    ttk.Button(container, text="Send", command=send, style=BUTTON_STYLE_NAMES["primary"]).pack(anchor="e", pady=6)
+    refresh()
+
+
+def open_universal_chart(patient_list):
+    import matplotlib.pyplot as plt
+    if not patient_list:
+        messagebox.showinfo("Info", "No patient data to chart.")
+        return
+    try:
+        import numpy as np
+    except ImportError:
+        np = None
+    patients = []
+    hr = []
+    systolic = []
+    diastolic = []
+    for p in patient_list:
+        try:
+            s, d = map(int, p["BP"].split("/"))
+            patients.append(p["name"])
+            hr.append(int(p["HR"]))
+            systolic.append(s)
+            diastolic.append(d)
+        except Exception:
+            continue
+    if not patients:
+        messagebox.showinfo("Info", "Vitals missing for chart.")
+        return
+    x = range(len(patients))
+    plt.figure(figsize=(9, 4))
+    plt.plot(x, hr, marker="o", label="HR")
+    plt.plot(x, systolic, marker="s", label="Systolic")
+    plt.plot(x, diastolic, marker="^", label="Diastolic")
+    plt.xticks(x, patients, rotation=45, ha="right")
+    plt.ylabel("Value")
+    plt.title("Universal Vitals Chart — Quick Care Pointers")
+    care_notes = "\n".join(
+        [
+            "How to use:",
+            "• Hover over spikes for coaching opportunities.",
+            "• Sync with SBAR cards before handoff.",
+            "• Review HR/BP trends to prioritize rounding order.",
+        ]
+    )
+    plt.figtext(0.01, -0.05, care_notes, ha="left", fontsize=9)
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
+
+
+def open_downtime_screen(role_var):
+    window = ttk.Toplevel()
+    window.title("Downtime Mode")
+    window.geometry("600x400")
+    window.configure(bg="#151515")
+    window.grab_set()
+    ttk.Label(
+        window,
+        text="Downtime Workflow",
+        font=("Helvetica Rounded", 26, "bold"),
+        foreground="#f7b1c2",
+        background="#151515",
+    ).pack(pady=40)
+    ttk.Label(
+        window,
+        text=f"Role: {role_var.get()} • Record vitals on paper flowsheets.\nUpload later via Downtime → Restore.",
+        font=("Helvetica", 14),
+        foreground="#f1e7d4",
+        background="#151515",
+    ).pack()
+    ttk.Button(window, text="Close", command=window.destroy, style=BUTTON_STYLE_NAMES["secondary"]).pack(pady=40)
+
+
 def open_patient_file(patient, tasks, timeline_entries, soft_notes, patient_files):
     ensure_patient_record(patient_files, patient["patient_id"])
     window = ttk.Toplevel()
@@ -1014,6 +1202,16 @@ def open_patient_file(patient, tasks, timeline_entries, soft_notes, patient_file
     patient_soft = [f"{n['timestamp']}: {n['note']}" for n in soft_notes.get(patient["patient_id"], [])]
     build_list(soft_tab, patient_soft or ["Add a soft note from the Soft Needs center."])
 
+    def add_voice_note():
+        note = simpledialog.askstring("Voice Note (typed)", "Dictate or paste quick note:")
+        if note:
+            add_soft_note(soft_notes, patient["patient_id"], f"Voice: {note}")
+            messagebox.showinfo("Saved", "Voice note saved to soft needs.")
+
+    ttk.Button(container, text="🎙 Voice Note", command=add_voice_note, style=BUTTON_STYLE_NAMES["info"]).grid(
+        row=3, column=1, sticky="e", pady=8
+    )
+
 
 def open_patient_file_prompt(patient_list, tasks, timeline_entries, soft_notes, patient_files):
     pid = simpledialog.askstring("Patient File", "Enter Patient ID:")
@@ -1025,11 +1223,21 @@ def open_patient_file_prompt(patient_list, tasks, timeline_entries, soft_notes, 
         return
     open_patient_file(patient, tasks, timeline_entries, soft_notes, patient_files)
 
-def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None, patient_files=None):
+def launch_gui(
+    patient_list,
+    tasks=None,
+    timeline_entries=None,
+    soft_notes=None,
+    patient_files=None,
+    medications=None,
+    team_messages=None,
+):
     tasks = tasks or []
     timeline_entries = timeline_entries or []
     soft_notes = soft_notes or {}
     patient_files = patient_files or load_patient_files()
+    medications = medications or load_medications()
+    team_messages = team_messages or load_messages()
     default_theme = "Pastel Blush"
     active_theme = load_saved_theme(default_theme)
     root = ttk.Window(title="✨ Smart Record App ✨", themename=DASHBOARD_THEMES[active_theme]["base_theme"])
@@ -1089,7 +1297,48 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
         style=BUTTON_STYLE_NAMES["secondary"],
     ).grid(row=0, column=2, padx=(0, 8))
 
-    ttk.Label(control_row, text="Theme", style=STYLE_NAMES["banner_subtitle"]).grid(row=0, column=3, padx=(12, 6))
+    ttk.Button(
+        control_row,
+        text="💬 Team Chat",
+        command=lambda: open_team_comm(team_messages, role_var),
+        style=BUTTON_STYLE_NAMES["accent"],
+    ).grid(row=0, column=3, padx=(0, 8))
+
+    ttk.Button(
+        control_row,
+        text="🕘 Downtime",
+        command=lambda: open_downtime_screen(role_var),
+        style=BUTTON_STYLE_NAMES["secondary"],
+    ).grid(row=0, column=4, padx=(0, 8))
+
+    ttk.Button(
+        control_row,
+        text="💾 Snapshot",
+        command=lambda: snapshot_patients(patient_list),
+        style=BUTTON_STYLE_NAMES["success"],
+    ).grid(row=0, column=5, padx=(0, 8))
+
+    ttk.Label(control_row, text="Role", style=STYLE_NAMES["banner_subtitle"]).grid(row=0, column=6, padx=(12, 4))
+    role_var = StringVar(value="RN")
+    role_combo = ttk.Combobox(
+        control_row,
+        textvariable=role_var,
+        values=["RN", "Charge", "Resident", "Night Shift", "Tech"],
+        state="readonly",
+        width=12,
+    )
+    role_combo.grid(row=0, column=7)
+
+    def on_role_change(_event=None):
+        selection = role_var.get()
+        if selection == "Tech":
+            patient_panel.configure(text="Patient Actions 🛠️")
+        else:
+            patient_panel.configure(text="Patient Actions 🩺")
+
+    role_combo.bind("<<ComboboxSelected>>", on_role_change)
+
+    ttk.Label(control_row, text="Theme", style=STYLE_NAMES["banner_subtitle"]).grid(row=0, column=8, padx=(12, 6))
     theme_var = StringVar(value=active_theme)
     theme_combo = ttk.Combobox(
         control_row,
@@ -1098,7 +1347,7 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
         state="readonly",
         width=16,
     )
-    theme_combo.grid(row=0, column=4)
+    theme_combo.grid(row=0, column=9)
 
     quick_frame = ttk.Labelframe(
         home_frame,
@@ -1194,6 +1443,12 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
         lambda: open_patient_file_prompt(patient_list, tasks, timeline_entries, soft_notes, patient_files),
         style_role="insight",
     )
+    create_dashboard_button(
+        patient_panel,
+        "💊 Med Tracker",
+        lambda: open_med_tracker(patient_list, medications),
+        style_role="accent",
+    )
     create_dashboard_button(patient_panel, "🧾 Scan Barcode/ID", lambda: gui_scan_barcode(patient_list), style_role="accent")
 
     create_dashboard_button(
@@ -1210,6 +1465,12 @@ def launch_gui(patient_list, tasks=None, timeline_entries=None, soft_notes=None,
     )
     create_dashboard_button(
         monitor_panel, "📊 Abnormal Vitals Chart", lambda: plot_abnormal_overview(patient_list), style_role="info"
+    )
+    create_dashboard_button(
+        monitor_panel,
+        "🌐 Universal Chart",
+        lambda: open_universal_chart(patient_list),
+        style_role="insight",
     )
     alert_frame = ttk.Labelframe(monitor_panel, text="Priority Alerts 🚨", padding=12, style=STYLE_NAMES["monitor_panel"])
     alert_frame.pack(fill="both", expand=True, pady=(12, 0))

@@ -41,6 +41,8 @@ from tasks import load_tasks
 from timeline import load_timeline
 from soft_needs import load_soft_needs
 from patient_files import load_patient_files
+from medications import load_medications
+from team_chat import load_messages
 
 __all__ = [
     "CSV_FILE",
@@ -88,4 +90,14 @@ if __name__ == "__main__":
     timeline_entries = load_timeline()
     soft_notes = load_soft_needs()
     patient_files = load_patient_files()
-    launch_gui(patient_list, tasks, timeline_entries, soft_notes, patient_files)
+    medications = load_medications()
+    team_messages = load_messages()
+    launch_gui(
+        patient_list,
+        tasks,
+        timeline_entries,
+        soft_notes,
+        patient_files,
+        medications,
+        team_messages,
+    )
