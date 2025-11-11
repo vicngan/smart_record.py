@@ -11,8 +11,8 @@ Smart Record is a pastel-friendly nurse dashboard built with Python, Tkinter, an
 - **Timeline viewer & patient history** logging admissions and every vitals update; trend charts now visualize all historical entries.
 - **Soft Needs notes + voice dictation stub** to capture emotional/communication cues.
 - **Team communication chat**, downtime overlay, and offline SQLite cache snapshots for resiliency.
-- **Universal vitals chart & abnormal alerts** to highlight high-risk patients across the unit.
-- **Themes** like Matcha Night (dark) and Blossom Minimal (minimal light) plus a role selector for RN/Charge/Resident views.
+- **Universal vitals chart & abnormal alerts** to highlight high-risk patients across the unit, paired with quick care tips.
+- **Role-based header** so RN / Charge / Resident / Night Shift / Tech see the context they need.
 - **Auto formatting**: BP/DOB/temp inputs accept "120 80" or "10 20 2005" and normalize automatically.
 
 These pieces reduce context switching, keep empathy cues front-and-center, and make handoffs delightful—tackling common EMR pain points around scattered notes, shallow vitals history, and tedious entry.
@@ -24,8 +24,14 @@ These pieces reduce context switching, keep empathy cues front-and-center, and m
 - **Matplotlib** for vitals trend + universal charts
 - **sqlite3 / CSV / JSON storage** for patients, timeline, tasks, meds, soft needs, and cached history
 
+## 🕹 Roles & Modes
+- **RN / Charge / Resident**: defaults to the standard pastel layout.
+- **Night Shift**: pair with Matcha Night or Blossom minimal themes for low-glare charting.
+- **Tech**: highlights support workflows (Patient Actions panel badge) while keeping access to med/admin tools.
+- **Downtime Mode**: one click brings up a blackout-friendly overlay with paper-flow reminders.
+
 ## 🚀 Running the App
 ```bash
 python3 smart_record.py/vitals.py
 ```
-Use the Theme dropdown to switch palettes, explore “🗂️ Patient File,” “💊 Med Tracker,” or “🧾 Handoff Summary,” and update vitals via the “🩺 Update Vitals” popup (with history logging). Snapshot the cache anytime with the "💾 Snapshot" button.
+Use the Theme dropdown to switch palettes, explore “🗂️ Patient File,” “💊 Med Tracker,” or “🧾 Handoff Summary,” and update vitals via the “🩺 Update Vitals” popup (with history logging). Snapshot the cache anytime with the "💾 Snapshot" button, then open the 🌐 Universal Chart to see aggregate vitals plus built-in care tips.
