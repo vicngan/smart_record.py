@@ -1,0 +1,63 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="haloGradient" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#F3FAE9" stop-opacity="1" />
+      <stop offset="65%" stop-color="#CFE8C1" stop-opacity="0.7" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="robeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#CDECD2" />
+      <stop offset="100%" stop-color="#9FC9AC" />
+    </linearGradient>
+    <linearGradient id="matchaGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#B8E986" />
+      <stop offset="100%" stop-color="#7BAF5C" />
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" />
+      <feColorMatrix type="saturate" values="0" />
+      <feBlend mode="multiply" in2="SourceGraphic" />
+    </filter>
+  </defs>
+  <rect width="640" height="640" rx="160" fill="#FFFDF9" />
+  <circle cx="320" cy="280" r="230" fill="url(#haloGradient)" />
+  <ellipse cx="320" cy="520" rx="210" ry="80" fill="#E7E1D8" opacity="0.35" />
+  <g id="Character">
+    <path d="M410 485c0 70-180 70-180 0s40-125 90-125 90 55 90 125z" fill="url(#robeGradient)" stroke="#97BC9A" stroke-width="6" />
+    <circle cx="320" cy="270" r="105" fill="#FDE5D7" />
+    <path d="M210 295c10-40 10-90 110-100 70-8 124 32 120 82" fill="none" stroke="#4A352D" stroke-width="95" stroke-linecap="round" />
+    <circle cx="285" cy="265" r="12" fill="#3D281E" />
+    <circle cx="355" cy="265" r="12" fill="#3D281E" />
+    <path d="M300 315c10 12 30 12 40 0" fill="none" stroke="#C78375" stroke-width="8" stroke-linecap="round" />
+    <path d="M250 220c25-30 110-30 150-5" fill="none" stroke="#F5DCCE" stroke-width="20" stroke-linecap="round" opacity="0.6" />
+  </g>
+  <g id="MatchaCup" transform="translate(210 360)">
+    <rect x="120" y="0" width="180" height="90" rx="45" fill="#FCF7EE" stroke="#CDE3C4" stroke-width="6" />
+    <path d="M300 45c36 0 60 35 52 70" fill="none" stroke="#CDE3C4" stroke-width="10" stroke-linecap="round" />
+    <ellipse cx="210" cy="45" rx="70" ry="26" fill="url(#matchaGradient)" />
+    <path d="M170 45c20-15 40-15 60 0" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="5" stroke-linecap="round" />
+    <g transform="translate(-40 -10) rotate(-12)">
+      <rect x="0" y="0" width="80" height="160" rx="18" fill="#F6E8D8" stroke="#DBC8B4" stroke-width="4" filter="url(#grain)" />
+      <line x1="20" y1="110" x2="60" y2="20" stroke="#B7936F" stroke-width="8" stroke-linecap="round" />
+      <line x1="26" y1="120" x2="68" y2="30" stroke="#E3C8A4" stroke-width="5" stroke-linecap="round" />
+    </g>
+  </g>
+  <g id="Steam">
+    <path d="M380 130c-10 50-10 100 0 140" stroke="rgba(255,255,255,0.7)" stroke-width="18" stroke-linecap="round" />
+    <path d="M420 150c-6 40-6 80 0 115" stroke="rgba(255,255,255,0.5)" stroke-width="14" stroke-linecap="round" />
+    <path d="M180 150c6 40 6 80 0 115" stroke="rgba(255,255,255,0.55)" stroke-width="14" stroke-linecap="round" />
+  </g>
+  <g id="Particles" opacity="0.4" fill="#B6DDA8">
+    <circle cx="150" cy="140" r="6" />
+    <circle cx="110" cy="280" r="4" />
+    <circle cx="520" cy="180" r="5" />
+    <circle cx="470" cy="320" r="7" />
+    <circle cx="210" cy="460" r="5" />
+    <circle cx="470" cy="460" r="4" />
+    <circle cx="360" cy="520" r="3" />
+  </g>
+  <g id="Sparkles" stroke="#F1D2D8" stroke-width="4" stroke-linecap="round">
+    <path d="M520 120l10 30 30 10-30 10-10 30-10-30-30-10 30-10z" opacity="0.6" />
+    <path d="M140 440l8 18 18 8-18 8-8 18-8-18-18-8 18-8z" opacity="0.5" />
+  </g>
+</svg>
