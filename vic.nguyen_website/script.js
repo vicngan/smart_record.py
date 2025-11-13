@@ -11,10 +11,12 @@ const soundCaption = document.getElementById('sound-caption');
 const cafeAudio = document.getElementById('cafe-audio');
 const particlesCanvas = document.getElementById('matcha-particles');
 const heroSection = document.getElementById('hero');
+const ambientPlayer = document.querySelector('.ambient-player');
 
 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
 const storedTheme = localStorage.getItem('theme');
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const prefersFinePointer = window.matchMedia('(pointer: fine)');
 
 const setTheme = (mode) => {
   root.setAttribute('data-theme', mode);
@@ -44,6 +46,150 @@ navLinks.forEach((link) => {
   });
 });
 
+const navObservers = (() => {
+  if (!navLinks.length) return null;
+
+  const targets = Array.from(navLinks)
+    .map((link) => {
+      const id = link.getAttribute('href')?.replace('#', '');
+      if (!id) return null;
+      const section = document.getElementById(id);
+      return section ? { link, section } : null;
+    })
+    .filter(Boolean);
+
+  if (!targets.length) return null;
+
+  let activeLink = null;
+  const setActiveLink = (link) => {
+    if (link === activeLink) return;
+    navLinks.forEach((item) => item.removeAttribute('aria-current'));
+    link.setAttribute('aria-current', 'page');
+    activeLink = link;
+  };
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const match = targets.find((target) => target.section === entry.target);
+        if (match) {
+          setActiveLink(match.link);
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  setActiveLink(targets[0].link);
+  targets.forEach(({ section }) => observer.observe(section));
+  return observer;
+})();
+
+const heroTilt = (() => {
+  if (!heroSection || prefersReducedMotion.matches || !prefersFinePointer.matches) return null;
+  const maxTilt = 6;
+  const updateTilt = (event) => {
+    const rect = heroSection.getBoundingClientRect();
+    const normalizedX = (event.clientX - rect.left) / rect.width - 0.5;
+    const normalizedY = (event.clientY - rect.top) / rect.height - 0.5;
+    root.style.setProperty('--hero-tiltX', `${normalizedX * maxTilt}deg`);
+    root.style.setProperty('--hero-tiltY', `${normalizedY * -maxTilt}deg`);
+  };
+  const resetTilt = () => {
+    root.style.setProperty('--hero-tiltX', '0deg');
+    root.style.setProperty('--hero-tiltY', '0deg');
+  };
+  heroSection.addEventListener('pointermove', updateTilt);
+  heroSection.addEventListener('pointerleave', resetTilt);
+  return { destroy: resetTilt };
+})();
+
+const initCarousels = () => {
+  const carousels = document.querySelectorAll('[data-carousel]');
+  if (!carousels.length) return;
+
+  carousels.forEach((carousel) => {
+    const track = carousel.querySelector('[data-carousel-track]');
+    const prev = carousel.querySelector('[data-carousel-prev]');
+    const next = carousel.querySelector('[data-carousel-next]');
+    const dotsHost =
+      carousel.nextElementSibling && carousel.nextElementSibling.matches('[data-carousel-dots]')
+        ? carousel.nextElementSibling
+        : null;
+
+    if (!track) return;
+    const cards = Array.from(track.children);
+    if (!cards.length) return;
+
+    let currentIndex = 0;
+    let scrollRAF;
+
+    const setDots = (index) => {
+      if (!dotsHost) return;
+      dotsHost.querySelectorAll('button').forEach((dot, idx) => {
+        dot.setAttribute('aria-current', idx === index ? 'true' : 'false');
+      });
+    };
+
+    if (dotsHost) {
+      dotsHost.innerHTML = '';
+      cards.forEach((_, idx) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', `Jump to project ${idx + 1}`);
+        dotsHost.appendChild(dot);
+        dot.addEventListener('click', () => {
+          scrollToIndex(idx);
+        });
+      });
+    }
+
+    const updateControls = () => {
+      if (prev) prev.disabled = currentIndex === 0;
+      if (next) next.disabled = currentIndex === cards.length - 1;
+      setDots(currentIndex);
+    };
+
+    const scrollToIndex = (index, smooth = true) => {
+      const clamped = Math.max(0, Math.min(index, cards.length - 1));
+      const behavior = smooth ? 'smooth' : 'auto';
+      cards[clamped].scrollIntoView({ behavior, inline: 'center', block: 'nearest' });
+      currentIndex = clamped;
+      updateControls();
+    };
+
+    prev?.addEventListener('click', () => scrollToIndex(currentIndex - 1));
+    next?.addEventListener('click', () => scrollToIndex(currentIndex + 1));
+
+    track.addEventListener('scroll', () => {
+      if (scrollRAF) cancelAnimationFrame(scrollRAF);
+      scrollRAF = requestAnimationFrame(() => {
+        const trackCenter = track.scrollLeft + track.clientWidth / 2;
+        let nearestIndex = 0;
+        let minDistance = Infinity;
+        cards.forEach((card, idx) => {
+          const cardCenter = card.offsetLeft + card.clientWidth / 2;
+          const distance = Math.abs(cardCenter - trackCenter);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestIndex = idx;
+          }
+        });
+        if (nearestIndex !== currentIndex) {
+          currentIndex = nearestIndex;
+          updateControls();
+        }
+      });
+    });
+
+    updateControls();
+    scrollToIndex(0, false);
+  });
+};
+
+initCarousels();
+
 const updateSoundCaption = (playing) => {
   if (!soundCaption) return;
   soundCaption.textContent = playing
@@ -51,21 +197,32 @@ const updateSoundCaption = (playing) => {
     : 'Café ambience muted. Captions: gentle chatter, soft rain, subtle lo-fi.';
 };
 
+const setAmbientToggleState = (expanded) => {
+  soundToggle?.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+  ambientPlayer?.classList.toggle('ambient-player--hidden', !expanded);
+  updateSoundCaption(expanded);
+};
+
+const isAmbientExpanded = () => soundToggle?.getAttribute('aria-pressed') === 'true';
+
+if (soundToggle) {
+  setAmbientToggleState(isAmbientExpanded());
+}
+
 soundToggle?.addEventListener('click', async () => {
-  if (!cafeAudio) return;
-  try {
-    if (cafeAudio.paused) {
-      await cafeAudio.play();
-      soundToggle.setAttribute('aria-pressed', 'true');
-      updateSoundCaption(true);
-    } else {
-      cafeAudio.pause();
-      soundToggle.setAttribute('aria-pressed', 'false');
-      updateSoundCaption(false);
+  const nextState = !isAmbientExpanded();
+  if (cafeAudio) {
+    try {
+      if (nextState) {
+        await cafeAudio.play();
+      } else {
+        cafeAudio.pause();
+      }
+    } catch (error) {
+      console.error('Audio playback blocked', error);
     }
-  } catch (error) {
-    console.error('Audio playback blocked', error);
   }
+  setAmbientToggleState(nextState);
 });
 
 const initParticles = () => {
@@ -165,14 +322,44 @@ modals.forEach((modal) => {
   });
 });
 
-contactForm?.addEventListener('submit', (event) => {
+contactForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const formData = new FormData(contactForm);
-  const name = formData.get('name');
+  if (!formStatus) return;
 
-  formStatus.textContent = `Thanks${name ? `, ${name}` : ''}! Your note is on its way.`;
-  contactForm.reset();
-  setTimeout(() => {
-    formStatus.textContent = '';
-  }, 4000);
+  const submitButton = contactForm.querySelector('button[type="submit"]');
+  const formData = new FormData(contactForm);
+  const payload = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    message: formData.get('message'),
+  };
+
+  formStatus.textContent = 'Sending your note...';
+  submitButton?.setAttribute('disabled', 'true');
+
+  try {
+    const response = await fetch('https://formsubmit.co/ajax/Vicngan@umich.edu', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Form submission failed with status ${response.status}`);
+    }
+
+    formStatus.textContent = `Thanks${payload.name ? `, ${payload.name}` : ''}! Your note is on its way.`;
+    contactForm.reset();
+  } catch (error) {
+    console.error(error);
+    formStatus.textContent = 'Hmm, something went wrong. Feel free to email me directly instead!';
+  } finally {
+    submitButton?.removeAttribute('disabled');
+    setTimeout(() => {
+      formStatus.textContent = '';
+    }, 6000);
+  }
 });

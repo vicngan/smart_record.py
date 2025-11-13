@@ -24,16 +24,28 @@
       <span></span>
       <span></span>
     </div>
-    <button class="sound-toggle" data-sound-toggle aria-pressed="false" aria-describedby="sound-caption">
+    <button
+      class="sound-toggle"
+      data-sound-toggle
+      aria-pressed="true"
+      aria-controls="ambient-player"
+      aria-describedby="sound-caption"
+    >
       <span class="sound-icon" aria-hidden="true">☕</span>
       <span class="sr-only">Toggle cozy café ambience</span>
     </button>
-    <p class="sound-caption" id="sound-caption">Café ambience muted. Captions: gentle chatter, soft rain, subtle lo-fi.</p>
-    <audio id="cafe-audio" loop preload="auto">
-      <source src="/assets/audio/cafe-ambient.mp3" type="audio/mpeg" />
-      <track kind="descriptions" src="/assets/audio/cafe-ambient.vtt" srclang="en" label="Ambient description" />
-      Your browser does not support the audio element.
-    </audio>
+    <div class="ambient-player" id="ambient-player">
+      <p class="ambient-player__label">Vibe check playlist</p>
+      <iframe
+        src="https://open.spotify.com/embed/playlist/2Al9G2jrWkwDlRFMZaw1GX?utm_source=generator"
+        width="100%"
+        height="152"
+        frameborder="0"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        title="Spotify playlist: Cozy Café Lo-Fi"
+      ></iframe>
+    </div>
     <header class="site-header">
       <div class="logo">
         <span class="logo-dot"></span>
@@ -46,7 +58,7 @@
         <a href="#experience">Experience</a>
         <a href="#involvement">Involvement</a>
         <a href="#contact">Contact</a>
-        <a href="/assets/V.Nguyen_CS_Resume.pdf" target="_blank" rel="noreferrer noopener"
+        <a href="assets/V.Nguyen_CS_Resume_2024-11.pdf" target="_blank" rel="noreferrer noopener"
           >Resume</a
         >
       </nav>
@@ -80,12 +92,12 @@
           <p class="matcha-note">Currently brewing: matcha-coded spaces where tech feels like a cozy café.</p>
           <div class="hero-buttons">
             <a class="btn primary" href="#projects">View My Projects</a>
-            <a class="btn secondary" href="/assets/V.Nguyen_CS_Resume.pdf" target="_blank" rel="noreferrer noopener"
+            <a class="btn secondary" href="assets/V.Nguyen_CS_Resume_2024-11.pdf" target="_blank" rel="noreferrer noopener"
               >Download Resume</a
             >
           </div>
           <div class="hero-socials">
-            <a href="mailto:Victoria.n.nguyen@gmail.com">Email</a>
+            <a href="mailto:Victoria.n.nguyen05@gmail.com">Email</a>
             <a href="https://www.linkedin.com/in/vicngan" target="_blank" rel="noreferrer noopener"
               >LinkedIn</a
             >
@@ -110,28 +122,39 @@
       </section>
 
       <section id="about" class="section card">
-        <div class="section-heading">
-          <h2>About Me 🌱</h2>
-          <p>Blending healthcare roots with human-centered code.</p>
+        <div class="about-header">
+          <div class="section-heading">
+            <h2>About Me 🌱</h2>
+            <p>Blending healthcare roots with human-centered code.</p>
+          </div>
+          <div class="about-portrait">
+            <div class="portrait-frame">
+              <img src="assets/Headshot.jpg" alt="Victoria Nguyen smiling headshot" loading="lazy" />
+            </div>
+          </div>
         </div>
-        <p>
-          🌿 Hi, I'm Victoria — a med-tech girly - combining care, code, and community 🤍 
-        <p>
-          Before I ever wrote a line of code, I was walking hospital hallways at 6 AM, taking vitals, helping patients out of bed, and learning what it really means to support someone on their worst days. My background in clinical patient care and clinical research is where my journey started.
-          Now I’m studying Computer Science at the University of Michigan — building tools inspired by the real human stories I’ve seen in clinical settings. I’ve developed projects like a gentle mental-health journal and a EMR stimulator because I want tech to feel supportive, intuitive, and kind. Not just impressive.
-          My passion is rooted in empathy, calm design, and the belief that technology should feel like a helping hand, not a barrier. </p>
-        <p>
+        <div class="about-text">
+          <p>🌿 Hi, I'm Victoria — everyone's favorite med-tech girly - combining care, code, and community 🤍</p>
+          <p>
+            Before I ever wrote a line of code, I was walking hospital hallways at 6 AM, taking vitals, helping patients out of bed, and learning what it really means to support someone on their worst days.
+            My background in clinical patient care and clinical research is where my journey started.
+            Now I’m studying Computer Science at the University of Michigan — building tools inspired by the real human stories I’ve seen in clinical settings.
+            I’ve developed projects like a gentle mental-health journal and an EMR stimulator because I want tech to feel supportive, intuitive, and kind. Not just impressive.
+            My passion is rooted in empathy, calm design, and the belief that technology should feel like a helping hand, not a barrier.
+          </p>
           <h3>🫶 My Mission</h3>
-          To build a future where healthcare tech feels gentle, intuitive, and deeply human.
-          Where patients feel supported, not confused.
-          Where caregivers feel empowered, not frustrated.
-          Where wellness tech is designed with compassion at the core.
-          I want to make software that feels like a warm matcha cup on a hard day — comforting, intentional, and made with care.
-        </p>
-        <div class="currently">
-          <div><span>📍</span> Raised in Arlington, TX - Based in Ann Arbor, MI</div>
-          <div><span>🎓</span> Computer Science @ University of Michigan</div>
-          <div><span>💡</span> Interests: building human-friendly medical tech, designing supportive clinical tools, creating thoughtful web apps, and improving care through data</div>
+          <p>
+            To build a future where healthcare tech feels gentle, intuitive, and deeply human.
+            Where patients feel supported, not confused.
+            Where caregivers feel empowered, not frustrated.
+            Where wellness tech is designed with compassion at the core.
+            I want to make software that feels like a warm matcha cup on a hard day — comforting, intentional, and made with care.
+          </p>
+          <div class="currently">
+            <div><span>📍</span> Hanoi, Vietnam -> Arlington, TX -> Ann Arbor, MI</div>
+            <div><span>🎓</span> Bio, Health, and Society -> Computer Science @ University of Michigan</div>
+            <div><span>💡</span> Interests: building human-friendly medical tech, designing supportive clinical tools, creating thoughtful web apps, and improving care through data</div>
+          </div>
         </div>
       </section>
 
@@ -147,6 +170,8 @@
               <span>Python</span>
               <span>SQL (beginner)</span>
               <span>Bash / CLI</span>
+              <span>JavaScript</span>
+              <span>TypeScript</span>
             </div>
           </div>
           <div class="skill-group">
@@ -159,6 +184,8 @@
               <span>Node.js</span>
               <span>Express</span>
               <span>MongoDB</span>
+              <span>Expo</span>
+              <span>React Native</span>
             </div>
           </div>
           <div class="skill-group">
@@ -170,6 +197,8 @@
               <span>Object-oriented programming</span>
               <span>Data analysis</span>
               <span>Version control</span>
+              <span>SQLite</span>
+              <span>REST APIs</span>
             </div>
           </div>
           <div class="skill-group">
@@ -177,7 +206,7 @@
             <div class="skill-pills">
               <span>VS Code</span>
               <span>Jupyter Notebook</span>
-              <span>Git &amp; GitHub</span>
+              <span>Git/GitHub</span>
               <span>Notion</span>
             </div>
           </div>
@@ -189,77 +218,95 @@
           <h2>Projects 💻</h2>
           <p>Soft, thoughtful builds rooted in care.</p>
         </div>
-        <div class="card-grid">
-          <article class="project-card card">
-            <div class="card-top">
-              <h3>Blossom Drift Journal App 🌸</h3>
-              <p class="stack">Python · Tkinter · React · Node.js · Express · MongoDB</p>
-              <p>
-                A GUI-based mental health journaling app with autosave, customizable prompts,
-                and persistent data storage. Designed around a soft, calming visual theme so
-                users feel safe to reflect.
-              </p>
-              <ul>
-                <li>Implemented multithreading so autosave runs smoothly without freezing the UI.</li>
-                <li>Used JSON-based storage for organized entries, mood tracking, and user analytics.</li>
-                <li>Designed the interface with user comfort in mind, emphasizing gentle colors and clarity.</li>
-              </ul>
-            </div>
-            <div class="card-actions">
-              <a href="https://github.com/vicngan/blossom-drift" target="_blank" rel="noreferrer noopener"
-                >View Code</a
-              >
-              <button class="ghost-button" data-modal="blossom-modal">More Details</button>
-            </div>
-          </article>
+        <div class="projects-carousel" data-carousel>
+          <button class="carousel-control prev" type="button" data-carousel-prev aria-label="View previous project">
+            ⟵
+          </button>
+          <div class="projects-track" data-carousel-track>
+            <article class="project-card card">
+              <div class="card-top">
+                <h3>Blossom Drift Journal App 🌸</h3>
+                <p class="stack">Python · Tkinter · React · Node.js · Express · MongoDB</p>
+                <p>
+                  A GUI-based mental health journaling app with autosave, customizable prompts,
+                  and persistent data storage. 
+                </p>
+                <p>
+                  Designed around a soft, calming visual theme so
+                  users feel safe to reflect.
+                </p>
+                <ul>
+                  <li>Implemented multithreading so autosave runs smoothly without freezing the UI.</li>
+                  <li>Used JSON-based storage for organized entries, mood tracking, and user analytics.</li>
+                  <li>Designed the interface with user comfort in mind, emphasizing gentle colors and clarity.</li>
+                </ul>
+              </div>
+              <div class="card-actions">
+                <a href="https://github.com/vicngan/blossom-drift" target="_blank" rel="noreferrer noopener"
+                  >View Code</a
+                >
+                <button class="ghost-button" data-modal="blossom-modal">More Details</button>
+              </div>
+            </article>
 
-          <article class="project-card card">
-            <div class="card-top">
-              <h3>Smart Record App 🩺</h3>
-              <p class="stack">Python · React · Node.js · MongoDB</p>
-              <p>
-                A patient vitals tracking system that simulates an EMR for clinical data
-                management, inspired by real inpatient workflows I’ve seen in urgent care and
-                hospital units.
-              </p>
-              <ul>
-                <li>Built vitals tracking with data validation and abnormal vital detection.</li>
-                <li>Automated logging to CSV/JSON for easy review and analysis.</li>
-                <li>
-                  Modeled clinical flows with object-oriented design; expanding with role-based dashboards for team members.
-                </li>
-              </ul>
-            </div>
-            <div class="card-actions">
-              <a href="https://github.com/vicngan/smart-record-app" target="_blank" rel="noreferrer noopener"
-                >View Code</a
-              >
-              <button class="ghost-button" data-modal="smart-modal">Design Story</button>
-            </div>
-          </article>
+            <article class="project-card card">
+              <div class="card-top">
+                <h3>Smart Record App 🩺</h3>
+                <p class="stack">Python · React · Node.js · MongoDB</p>
+                <p>
+                  A patient vitals tracking system that simulates an EMR for clinical data
+                  management, 
+                </p>
+                <p>
+                  inspired by real inpatient workflows I’ve seen in urgent care and
+                  hospital units.
+                </p>
+                <ul>
+                  <li>Built vitals tracking with data validation and abnormal vital detection.</li>
+                  <li>Automated logging to CSV/JSON for easy review and analysis.</li>
+                  <li>Modeled clinical flows with object-oriented design;</li>
+                  <li>expanding with role-based dashboards for team members.</li>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-actions">
+                <a href="https://github.com/vicngan/smart-record-app" target="_blank" rel="noreferrer noopener"
+                  >View Code</a
+                >
+                <button class="ghost-button" data-modal="smart-modal">Design Story</button>
+              </div>
+            </article>
 
-          <article class="project-card card">
-            <div class="card-top">
-              <h3>Heartline Care Companion 💚</h3>
-              <p class="stack">React Native · Node.js · MongoDB · Bluetooth LE · Twilio</p>
-              <p>
-                A mobile care companion that keeps transplant and post-op patients connected to their care
-                team through gentle reminders, vitals syncing, and mood check-ins inspired by real 5C workflows.
-              </p>
-              <ul>
-                <li>Designed pill and hydration reminders with a soothing matcha UI that reduces alert fatigue.</li>
-                <li>Streams Bluetooth vitals and symptom notes to a secure dashboard so RNs can intervene sooner.</li>
-                <li>Built an escalation flow that texts caregivers via Twilio when concerning patterns appear.</li>
-              </ul>
-            </div>
-            <div class="card-actions">
-              <a href="https://github.com/vicngan/heartline-care-companion" target="_blank" rel="noreferrer noopener"
-                >View Code</a
-              >
-              <button class="ghost-button" data-modal="heartline-modal">Care Flow</button>
-            </div>
-          </article>
+            <article class="project-card card">
+              <div class="card-top">
+                <h3>Heartline Care Companion 💚</h3>
+                <p class="stack">React Native · Node.js · MongoDB · Bluetooth LE · Twilio</p>
+                <p>
+                  A mobile care companion that keeps transplant and post-op patients connected to their care
+                  team through 
+                </p>
+                <p>
+                  gentle reminders, vitals syncing, and mood check-ins inspired by real 5C workflows.
+                </p>
+                <ul>
+                  <li>Designed pill and hydration reminders with a soothing matcha UI that reduces alert fatigue.</li>
+                  <li>Streams Bluetooth vitals and symptom notes to a secure dashboard so RNs can intervene sooner.</li>
+                  <li>Built an escalation flow that texts caregivers via Twilio when concerning patterns appear.</li>
+                </ul>
+              </div>
+              <div class="card-actions">
+                <a href="https://github.com/vicngan/heartline-care-companion" target="_blank" rel="noreferrer noopener"
+                  >View Code</a
+                >
+                <button class="ghost-button" data-modal="heartline-modal">Care Flow</button>
+              </div>
+            </article>
+          </div>
+          <button class="carousel-control next" type="button" data-carousel-next aria-label="View next project">
+            ⟶
+          </button>
         </div>
+        <div class="carousel-dots" data-carousel-dots></div>
       </section>
 
       <section id="experience" class="section">
@@ -355,13 +402,18 @@
           </p>
         </div>
         <div class="contact-actions">
-          <a class="btn primary" href="mailto:Vicngan@umich.edu">Email me</a>
+          <a class="btn primary" href="mailto:victoria.n.nguyen05@umich.edu">Email me</a>
           <a class="btn secondary" href="https://www.linkedin.com/in/vicngan" target="_blank" rel="noreferrer noopener"
             >LinkedIn</a
           >
           <a class="btn secondary" href="https://github.com/vicngan" target="_blank" rel="noreferrer noopener"
             >GitHub</a
           >
+        </div>
+        <div class="contact-chips">
+          <a href="https://calendly.com/vicngan/matcha-chat" target="_blank" rel="noreferrer noopener">☕ Book a matcha chat</a>
+          <a href="assets/V.Nguyen_CS_Resume_2024-11.pdf" target="_blank" rel="noreferrer noopener">📄 Download resume</a>
+          <a href="mailto:Vicngan@umich.edu?subject=Voice%20note%20for%20Victoria" rel="noreferrer noopener">🎙️ Send a quick voice note</a>
         </div>
         <form class="contact-form" data-form>
           <label>
