@@ -20,9 +20,6 @@
 
     <title>Heartline Care Companion</title>
     
-    <!-- Auto-redirect after 3 seconds -->
-    <meta http-equiv="refresh" content="3;url=https://heartlinecompanion.streamlit.app/">
-    
     <style>
         * {
             margin: 0;
@@ -114,5 +111,11 @@
             Click here if not redirected
         </a>
     </div>
+    <script>
+        // Delay navigation so screen readers have time to announce content
+        setTimeout(() => {
+            window.location.href = 'https://heartlinecompanion.streamlit.app/';
+        }, 3000);
+    </script>
 </body>
 </html>

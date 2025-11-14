@@ -18,6 +18,10 @@ const storedTheme = localStorage.getItem('theme');
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const prefersFinePointer = window.matchMedia('(pointer: fine)');
 
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
 const setTheme = (mode) => {
   root.setAttribute('data-theme', mode);
   localStorage.setItem('theme', mode);
@@ -154,7 +158,17 @@ const initCarousels = () => {
     const scrollToIndex = (index, smooth = true) => {
       const clamped = Math.max(0, Math.min(index, cards.length - 1));
       const behavior = smooth ? 'smooth' : 'auto';
-      cards[clamped].scrollIntoView({ behavior, inline: 'center', block: 'nearest' });
+      const card = cards[clamped];
+      const trackRect = track.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const offsetWithinTrack = cardRect.left - trackRect.left;
+      const target =
+        offsetWithinTrack - track.clientWidth / 2 + card.clientWidth / 2 + track.scrollLeft;
+      const clampedTarget = Math.max(
+        0,
+        Math.min(target, track.scrollWidth - track.clientWidth)
+      );
+      track.scrollTo({ left: clampedTarget, behavior });
       currentIndex = clamped;
       updateControls();
     };
@@ -275,6 +289,33 @@ const initParticles = () => {
 };
 
 initParticles();
+
+const shouldSnapToHero = () => {
+  const hash = window.location.hash;
+  return !hash || hash === '#hero';
+};
+
+const snapHeroIntoView = () => {
+  if (!shouldSnapToHero()) return;
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    if (window.location.hash !== '#hero') {
+      history.replaceState(null, '', '#hero');
+    }
+  });
+};
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  snapHeroIntoView();
+} else {
+  window.addEventListener('DOMContentLoaded', snapHeroIntoView, { once: true });
+}
+window.addEventListener('load', snapHeroIntoView);
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    snapHeroIntoView();
+  }
+});
 
 const observer = new IntersectionObserver(
   (entries) => {

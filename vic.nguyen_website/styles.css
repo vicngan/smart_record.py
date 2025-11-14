@@ -208,6 +208,9 @@ main {
   position: relative;
   background: radial-gradient(circle at top right, rgba(215, 240, 223, 0.7), rgba(255, 255, 255, 0.95));
   overflow: hidden;
+  opacity: 0;
+  transform: translateY(36px) scale(0.97);
+  animation: hero-container-pop 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.1) 0.02s forwards;
 }
 
 #matcha-particles {
@@ -230,6 +233,52 @@ main {
 .hero-text {
   position: relative;
   z-index: 1;
+  opacity: 0;
+  transform: translateY(28px) scale(0.97);
+  animation: hero-pop 0.85s cubic-bezier(0.18, 0.89, 0.32, 1.28) 0.15s forwards;
+}
+
+@keyframes hero-container-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(48px) scale(0.93);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hero-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.94);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-text {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .hero {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .hero-text h1::after {
